@@ -7,11 +7,11 @@ FILENAME=`basename $SCRIPT`
 ROOT=`dirname $SCRIPT`
 LICODE_ROOT="$ROOT"/..
 CURRENT_DIR=`pwd`
-NVM_CHECK="$LICODE_ROOT"/scripts/checkNvm.sh
+# NVM_CHECK="$LICODE_ROOT"/scripts/checkNvm.sh
 
-. $NVM_CHECK
+# . $NVM_CHECK
 
-nvm use
+# nvm use
 
 echo [spine] Installing node_modules for Spine
 

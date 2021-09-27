@@ -25,14 +25,14 @@ install_nuve(){
 }
 
 create_credentials(){
-  mongo $dbURL --eval "db.services.insert({name: 'superService', key: '$RANDOM', rooms: []})"
-  SERVID=`mongo $dbURL --quiet --eval "db.services.findOne()._id"`
-  SERVKEY=`mongo $dbURL --quiet --eval "db.services.findOne().key"`
+  mongo $dbURL -u $MONGO_USERNAME -p $MONGO_PASSWORD --authenticationDatabase $AUTH_DB --eval "db.services.insert({name: 'superService', key: '$RANDOM', rooms: []})"
+  SERVID=`mongo $dbURL -u $MONGO_USERNAME -p $MONGO_PASSWORD --authenticationDatabase $AUTH_DB --quiet --eval "db.services.findOne()._id"`
+  SERVKEY=`mongo $dbURL -u $MONGO_USERNAME -p $MONGO_PASSWORD --authenticationDatabase $AUTH_DB --quiet --eval "db.services.findOne().key"`
   SERVID=`echo $SERVID| cut -d'"' -f 2`
   SERVID=`echo $SERVID| cut -d'"' -f 1`
 }
 add_credentials(){
-  RESULT=`mongo $dbURL --quiet --eval "db.services.insert({name: 'superService', _id: ObjectId('$SERVID'), key: '$SERVKEY', rooms: []})"`
+  RESULT=`mongo $dbURL -u $MONGO_USERNAME -p $MONGO_PASSWORD --authenticationDatabase $AUTH_DB --quiet --eval "db.services.insert({name: 'superService', _id: ObjectId('$SERVID'), key: '$SERVKEY', rooms: []})"`
   echo $RESULT
   NOTFOUND=`echo $RESULT | grep "writeError"`
   if [[ ! -z "$NOTFOUND" ]]; then
@@ -42,7 +42,7 @@ add_credentials(){
 }
 
 check_credentials(){
-  RESULT=`mongo $dbURL --quiet --eval "db.services.find({name: 'superService', _id: ObjectId('$SERVID'), key: '$SERVKEY', rooms: []})"`
+  RESULT=`mongo $dbURL -u $MONGO_USERNAME -p $MONGO_PASSWORD --authenticationDatabase $AUTH_DB --quiet --eval "db.services.find({name: 'superService', _id: ObjectId('$SERVID'), key: '$SERVKEY', rooms: []})"`
   echo $RESULT
   if [[ -z "$RESULT" ]]; then
     add_credentials

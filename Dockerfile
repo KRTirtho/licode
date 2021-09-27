@@ -1,8 +1,12 @@
-FROM node:16-bullseye
+FROM node:12-buster
 
 LABEL maintainer="Lynckia"
 
 WORKDIR /opt
+
+ARG MONGO_USERNAME
+ARG MONGO_PASSWORD
+ARG AUTH_DB
 
 #Configure tzdata
 ENV TZ=Europe/Madrid
@@ -15,26 +19,29 @@ COPY .nvmrc package.json /opt/licode/
 
 COPY scripts/installUbuntuDeps.sh scripts/checkNvm.sh scripts/libnice-014.patch0 /opt/licode/scripts/
 
-WORKDIR /opt/licode/libdeps
+WORKDIR /opt/licode/build/libdeps
 
 # fixing Windows's Corrupted CRLF incase started from docker-desktop-windows
-RUN find ../scripts -type f -exec dos2unix {} \;
+RUN find ../../scripts -type f -exec dos2unix {} \;
 
 # creating prefix_dir
 RUN mkdir ./build
 
 # Installing apt deps
-RUN npm install --prefix=..
+RUN npm install --prefix=../..
 RUN apt install -qq python3-software-properties software-properties-common -y
-RUN apt install make gcc-10 g++-10 python3-pip libssl-dev cmake pkg-config rabbitmq-server curl autoconf libtool automake -y
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 60 --slave /usr/bin/g++ g++ /usr/bin/g++-10
+
+ENV GCC_VERSION=7
+
+RUN apt install make gcc-${GCC_VERSION} g++-${GCC_VERSION} python3-pip libssl-dev cmake pkg-config rabbitmq-server curl autoconf libtool automake -y
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 60 --slave /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION}
 RUN chown -R `whoami` ~/.npm ~/tmp/ || true
 
 # installing mongodb
 RUN apt install -y libcurl4 openssl liblzma5\
   && wget -P . https://fastdl.mongodb.org/linux/mongodb-shell-linux-x86_64-debian10-4.4.9.tgz\
   && tar -zxvf ./mongodb-shell-linux-x86_64-debian10-4.4.9.tgz -C ./\
-  && ln -s ./mongodb-shell-linux-x86_64-debian10-4.4.9.tgz/bin/* /usr/local/bin/
+  && cp ./mongodb-linux-x86_64-debian10-4.4.9/bin/mongo /usr/local/bin/
 
 # installing conan
 RUN pip3 install conan==1.34
@@ -42,7 +49,7 @@ RUN pip3 install conan==1.34
 
 # download & installing OpenSSL
 ENV OPENSSL_VERSION="1.1.1l"
-ENV PREFIX_DIR=/opt/licode/libdeps/build
+ENV PREFIX_DIR=/opt/licode/build/libdeps/build
 
 RUN curl -OL https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz\
   && tar -zxvf openssl-$OPENSSL_VERSION.tar.gz\
@@ -77,12 +84,15 @@ RUN rm -r libsrtp* &&\
   rm -r v11* &&\
   rm -r openssl* &&\
   rm -r opus* &&\
-  rm -r mongodb*.tgz
+  rm -r mongodb*.tgz &&\
+  rm -r mongodb*
 
 
 WORKDIR /opt
 
 COPY . /opt/licode
+
+RUN find ./licode -type f -exec dos2unix {} \;
 
 RUN mkdir /opt/licode/.git
 
@@ -92,9 +102,9 @@ WORKDIR /opt/licode/scripts
 # running again because scripts changed after copying/cloning
 RUN find . -type f -exec dos2unix {} \;
 
-RUN ./installErizo.sh -dfEAcs && \
-  ./../nuve/installNuve.sh && \
-  ./installBasicExample.sh
+# RUN ./installErizo.sh -dfEAcs 
+# RUN ./../nuve/installNuve.sh 
+# RUN ./installBasicExample.sh
 
 RUN ldconfig /opt/licode/build/libdeps/build/lib
 
@@ -108,4 +118,4 @@ RUN cat RELEASE
 
 WORKDIR /opt
 
-ENTRYPOINT ["./licode/extras/docker/initDockerLicode.sh"]
+ENTRYPOINT MONGO_USERNAME=${MONGO_USERNAME} MONGO_PASSWORD=${MONGO_PASSWORD} AUTH_DB=${AUTH_DB} ./licode/extras/docker/initDockerLicode.sh

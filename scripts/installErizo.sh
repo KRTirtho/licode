@@ -10,7 +10,7 @@ BUILD_DIR=$ROOT/build
 CURRENT_DIR=`pwd`
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
-NVM_CHECK="$PATHNAME"/checkNvm.sh
+# NVM_CHECK="$PATHNAME"/checkNvm.sh
 FAST_MAKE=''
 
 NUM_CORES=1;
@@ -100,8 +100,8 @@ install_erizo(){
 install_erizo_api_release(){
   echo 'Installing erizoAPI...'
   cd $ROOT/erizoAPI
-  . $NVM_CHECK
-  nvm use
+  # . $NVM_CHECK
+  # nvm use
   $FAST_BUILD npm install --unsafe-perm -no_debug=1
   check_result $?
   cd $CURRENT_DIR
@@ -110,8 +110,8 @@ install_erizo_api_release(){
 install_erizo_api(){
   echo 'Installing erizoAPI...'
   cd $ROOT/erizoAPI
-  . $NVM_CHECK
-  nvm use
+  # . $NVM_CHECK
+  # nvm use
   $FAST_BUILD npm install --unsafe-perm
   check_result $?
   cd $CURRENT_DIR

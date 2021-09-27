@@ -5,9 +5,8 @@ SCRIPTS="$ROOT"/scripts
 BUILD_DIR="$ROOT"/build
 DB_DIR="$BUILD_DIR"/db
 EXTRAS="$ROOT"/extras
-NVM_CHECK="$ROOT"/scripts/checkNvm.sh
+# NVM_CHECK="$ROOT"/scripts/checkNvm.sh
 echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$BUILD_DIR/libdeps/build/lib" >> ~/.bashrc
-
 
 parse_arguments(){
   if [ -z "$1" ]; then
@@ -50,11 +49,11 @@ parse_arguments(){
   fi
 }
 
-run_nvm() {
-  echo "Running NVM"
-  . $ROOT/build/libdeps/nvm/nvm.sh
+# run_nvm() {
+#   echo "Running NVM"
+#   . $ROOT/build/libdeps/nvm/nvm.sh
 
-}
+# }
 check_result() {
   if [ "$1" -eq 1 ]
   then
@@ -86,9 +85,9 @@ run_mongo() {
   dbURL=`echo $dbURL| cut -d'"' -f 1`
 
   echo [licode] Creating superservice in $dbURL
-  mongo $dbURL --eval "db.services.insert({name: 'superService', key: '$RANDOM', rooms: []})"
-  SERVID=`mongo $dbURL --quiet --eval "db.services.findOne()._id"`
-  SERVKEY=`mongo $dbURL --quiet --eval "db.services.findOne().key"`
+  mongo $dbURL -u $MONGO_USERNAME -p $MONGO_PASSWORD  --authenticationDatabase $AUTH_DB --eval "db.services.insert({name: 'superService', key: '$RANDOM', rooms: []})"
+  SERVID=`mongo $dbURL -u $MONGO_USERNAME -p $MONGO_PASSWORD  --authenticationDatabase $AUTH_DB --quiet --eval "db.services.findOne()._id"`
+  SERVKEY=`mongo $dbURL -u $MONGO_USERNAME -p $MONGO_PASSWORD  --authenticationDatabase $AUTH_DB --quiet --eval "db.services.findOne().key"`
 
   SERVID=`echo $SERVID| cut -d'"' -f 2`
   SERVID=`echo $SERVID| cut -d'"' -f 1`
@@ -142,8 +141,8 @@ parse_arguments $*
 
 cd $ROOT/scripts
 
-run_nvm
-nvm use
+# run_nvm
+# nvm use
 
 if [ "$MONGODB" == "true" ]; then
   run_mongo
