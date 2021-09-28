@@ -4,10 +4,6 @@ LABEL maintainer="Lynckia"
 
 WORKDIR /opt
 
-ARG MONGO_USERNAME
-ARG MONGO_PASSWORD
-ARG AUTH_DB
-
 #Configure tzdata
 ENV TZ=Europe/Madrid
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -102,9 +98,9 @@ WORKDIR /opt/licode/scripts
 # running again because scripts changed after copying/cloning
 RUN find . -type f -exec dos2unix {} \;
 
-# RUN ./installErizo.sh -dfEAcs 
-# RUN ./../nuve/installNuve.sh 
-# RUN ./installBasicExample.sh
+RUN ./installErizo.sh -dfEAcs 
+RUN ./../nuve/installNuve.sh 
+RUN ./installBasicExample.sh
 
 RUN ldconfig /opt/licode/build/libdeps/build/lib
 
@@ -118,4 +114,4 @@ RUN cat RELEASE
 
 WORKDIR /opt
 
-ENTRYPOINT MONGO_USERNAME=${MONGO_USERNAME} MONGO_PASSWORD=${MONGO_PASSWORD} AUTH_DB=${AUTH_DB} ./licode/extras/docker/initDockerLicode.sh
+ENTRYPOINT ["./licode/extras/docker/initDockerLicode.sh"]

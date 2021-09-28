@@ -13,7 +13,7 @@ config.nuve.superserviceID = config.nuve.superserviceID || '';
 config.nuve.superserviceKey = config.nuve.superserviceKey || '';
 config.nuve.testErizoController = config.nuve.testErizoController || 'localhost:8080';
 
-const databaseUrl = config.nuve.dataBaseURL;
+const databaseUrl = config.nuve.dataBaseURL.replace("mongodb://", `mongodb://${process.env.MONGO_USERNAME}:${process.env.MONGO_PASSWORD}@`) + `?authSource=${process.env.AUTH_DB}`;
 
 /*
  * Data base collections and its fields are:
