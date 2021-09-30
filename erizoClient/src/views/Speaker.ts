@@ -9,7 +9,7 @@ export interface SpeakerOptions {
   stream: { stream: MediaStream, local?: MediaStream };
 }
 
-interface SpeakerElement extends ViewElement, Partial<SpeakerOptions> {
+export interface SpeakerElement extends ViewElement, Partial<SpeakerOptions> {
   icon: HTMLImageElement,
   picker: HTMLInputElement,
   div: HTMLDivElement

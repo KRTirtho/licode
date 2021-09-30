@@ -1,5 +1,13 @@
 import View from './View';
 import Bar from './Bar';
+import { VideoPlayerElement, VideoPlayerOptions } from './VideoPlayer';
+
+export interface AudioPlayerOptions extends Omit<VideoPlayerOptions, "options"> {
+  options: { bar?: boolean, speaker?: boolean }
+}
+export interface AudioPlayerElement extends Omit<VideoPlayerElement, "video" | "containerHeight" | "containerWidth"> {
+  audio: HTMLAudioElement
+}
 
 /*
  * AudioPlayer represents a Licode Audio component that shows either a local or a remote Audio.
@@ -7,25 +15,20 @@ import Bar from './Bar';
  * A AudioPlayer is also a View component.
  */
 
-const AudioPlayer = (spec) => {
-  const that = View({});
+const AudioPlayer = (spec: AudioPlayerOptions) => {
+  const that: AudioPlayerElement = {
+    ...View(),
+    div: document.createElement("div"),
+    ...spec,
+    stream: spec.stream.stream,
+    audio: document.createElement("audio"),
+    destroy() { },
+  };
   let onmouseover;
   let onmouseout;
 
-  // Variables
-
-  // AudioPlayer ID
-  that.id = spec.id;
-
-  // Stream that the AudioPlayer will play
-  that.stream = spec.stream.stream;
-
-  // DOM element in which the AudioPlayer will be appended
-  that.elementID = spec.elementID;
-
 
   // Audio tag
-  that.audio = document.createElement('audio');
   that.audio.setAttribute('id', `stream${that.id}`);
   that.audio.setAttribute('class', 'licode_stream');
   that.audio.setAttribute('style', 'width: 100%; height: 100%; position: absolute');
@@ -37,44 +40,46 @@ const AudioPlayer = (spec) => {
     // It will stop the AudioPlayer and remove it from the HTML
     that.destroy = () => {
       that.audio.pause();
-      that.parentNode.removeChild(that.div);
+      that.parentNode?.removeChild(that.div);
     };
 
     onmouseover = () => {
-      that.bar.display();
+      that.bar?.display();
     };
 
     onmouseout = () => {
-      that.bar.hide();
+      that.bar?.hide();
     };
 
     // Container
-    that.div = document.createElement('div');
     that.div.setAttribute('id', `player_${that.id}`);
     that.div.setAttribute('class', 'licode_player');
     that.div.setAttribute('style', 'width: 100%; height: 100%; position: relative; ' +
-                              'overflow: hidden;');
+      'overflow: hidden;');
 
     // Check for a passed DOM node.
     if (typeof that.elementID === 'object' &&
-          typeof that.elementID.appendChild === 'function') {
+      typeof that.elementID.appendChild === 'function') {
       that.container = that.elementID;
     } else {
-      that.container = document.getElementById(that.elementID);
+      that.container = document.getElementById(that.elementID as string);
     }
-    that.container.appendChild(that.div);
+    that.container?.appendChild(that.div);
 
-    that.parentNode = that.div.parentNode;
+
+    Object.assign(that, { parentNode: that.div.parentNode })
 
     that.div.appendChild(that.audio);
 
     // Bottom Bar
-    if (spec.options.bar !== false) {
-      that.bar = Bar({ elementID: `player_${that.id}`,
+    if (spec.options?.bar !== false) {
+      that.bar = Bar({
+        elementID: `player_${that.id}`,
         id: that.id,
         stream: spec.stream,
         media: that.audio,
-        options: spec.options });
+        options: spec.options
+      });
 
       that.div.onmouseover = onmouseover;
       that.div.onmouseout = onmouseout;
@@ -86,7 +91,7 @@ const AudioPlayer = (spec) => {
     // It will stop the AudioPlayer and remove it from the HTML
     that.destroy = () => {
       that.audio.pause();
-      that.parentNode.removeChild(that.audio);
+      that.parentNode?.removeChild(that.audio);
     };
 
     document.body.appendChild(that.audio);

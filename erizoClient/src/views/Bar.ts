@@ -1,7 +1,25 @@
 /* global document */
 
-import View from './View';
-import Speaker from './Speaker';
+import View, { ViewElement } from './View';
+import Speaker, { SpeakerElement, SpeakerOptions } from './Speaker';
+
+export interface BarOptions {
+  elementID: string,
+  id: string,
+  options?: { speaker?: boolean },
+  stream: SpeakerOptions["stream"] & { screen?: boolean },
+  media: HTMLMediaElement
+}
+
+export interface BarElement extends BarOptions, ViewElement {
+  div: HTMLDivElement,
+  bar: HTMLDivElement,
+  link: HTMLAnchorElement,
+  logo: HTMLImageElement,
+  speaker?: SpeakerElement
+  hide(): void,
+  display(): void
+}
 
 /*
  * Bar represents the bottom menu bar of every mediaPlayer.
@@ -9,46 +27,49 @@ import Speaker from './Speaker';
  * Every Bar is a View.
  * Ex.: var bar = Bar({elementID: element, id: id});
  */
-const Bar = (spec) => {
-  const that = View({});
-  let waiting;
+const Bar = (spec: BarOptions): BarElement => {
+  const that: BarElement = {
+    ...View(),
+    ...spec,
+    div: document.createElement("div"),
+    bar: document.createElement("div"),
+    link: document.createElement("a"),
+    logo: document.createElement("img"),
+    display: () => {
+      show('block');
+    },
+    hide: () => {
+      waiting = setTimeout(show, 1000) as unknown as number;
+    }
+  };
+  let waiting: number;
 
   // Variables
 
-  // DOM element in which the Bar will be appended
-  that.elementID = spec.elementID;
-
-  // Bar ID
-  that.id = spec.id;
-
   // Container
-  that.div = document.createElement('div');
   that.div.setAttribute('id', `bar_${that.id}`);
   that.div.setAttribute('class', 'licode_bar');
 
   // Bottom bar
-  that.bar = document.createElement('div');
   that.bar.setAttribute('style', 'width: 100%; height: 15%; max-height: 30px; ' +
-                                 'position: absolute; bottom: 0; right: 0; ' +
-                                 'background-color: rgba(255,255,255,0.62)');
+    'position: absolute; bottom: 0; right: 0; ' +
+    'background-color: rgba(255,255,255,0.62)');
   that.bar.setAttribute('id', `subbar_${that.id}`);
   that.bar.setAttribute('class', 'licode_subbar');
 
   // Lynckia icon
-  that.link = document.createElement('a');
   that.link.setAttribute('href', 'http://www.lynckia.com/');
   that.link.setAttribute('class', 'licode_link');
   that.link.setAttribute('target', '_blank');
 
-  that.logo = document.createElement('img');
   that.logo.setAttribute('style', 'width: 100%; height: 100%; max-width: 30px; ' +
-                                  'position: absolute; top: 0; left: 2px;');
+    'position: absolute; top: 0; left: 2px;');
   that.logo.setAttribute('class', 'licode_logo');
   that.logo.setAttribute('alt', 'Lynckia');
   that.logo.setAttribute('src', `${that.url}/assets/star.svg`);
 
   // Private functions
-  const show = (displaying) => {
+  const show = (displaying: string) => {
     let action = displaying;
     if (displaying !== 'block') {
       action = 'none';
@@ -61,27 +82,22 @@ const Bar = (spec) => {
   };
 
   // Public functions
-  that.display = () => {
-    show('block');
-  };
 
-  that.hide = () => {
-    waiting = setTimeout(show, 1000);
-  };
-
-  document.getElementById(that.elementID).appendChild(that.div);
+  document.getElementById(that.elementID)?.appendChild(that.div);
   that.div.appendChild(that.bar);
   that.bar.appendChild(that.link);
   that.link.appendChild(that.logo);
 
   // Speaker component
   if (!spec.stream.screen && (spec.options === undefined ||
-                              spec.options.speaker === undefined ||
-                              spec.options.speaker === true)) {
-    that.speaker = Speaker({ elementID: `subbar_${that.id}`,
+    spec.options.speaker === undefined ||
+    spec.options.speaker === true)) {
+    that.speaker = Speaker({
+      elementID: `subbar_${that.id}`,
       id: that.id,
       stream: spec.stream,
-      media: spec.media });
+      media: spec.media
+    });
   }
 
   that.display();

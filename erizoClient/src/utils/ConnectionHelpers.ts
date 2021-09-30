@@ -23,7 +23,7 @@ const getBrowser = () => {
   return browser;
 };
 
-interface CommonMediaTrackConstraints extends MediaTrackConstraints {
+export interface CommonMediaTrackConstraints extends MediaTrackConstraints {
   mandatory?: {
     chromeMediaSource?: string | 'desktop',
     chromeMediaSourceId?: string,
@@ -31,7 +31,7 @@ interface CommonMediaTrackConstraints extends MediaTrackConstraints {
   mediaSource?: 'window' | 'screen'
 }
 
-interface CommonMediaStreamConstraints {
+export interface CommonMediaStreamConstraints {
   audio?: CommonMediaTrackConstraints,
   video?: CommonMediaTrackConstraints,
   desktopStreamId?: string;
