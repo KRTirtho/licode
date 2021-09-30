@@ -4,6 +4,16 @@
   "description": "Open Source Communication Provider",
   "license": "MIT",
   "private": true,
+  "workspaces": [
+    "erizo",
+    "erizo_controller",
+    "erizoAPI",
+    "erizoClient",
+    "nuve",
+    "nuveClient",
+    "test",
+    "spine"
+  ],
   "devDependencies": {
     "async": "^2.1.2",
     "chai": "^3.5.0",
