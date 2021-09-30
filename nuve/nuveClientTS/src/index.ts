@@ -1,6 +1,6 @@
 import crypto, { BinaryLike } from "crypto";
 import path from "path"
-import { XMLHttpRequest } from "w3c-xmlhttprequest"
+import fetch, { Headers } from "node-fetch"
 
 export interface NuveClientOptions {
   service: string;
@@ -8,7 +8,7 @@ export interface NuveClientOptions {
   url: string;
 }
 
-export interface Room{
+export interface Room {
   name: string,
   _id: string,
   p2p: boolean,
@@ -16,14 +16,10 @@ export interface Room{
   data: Record<string, string>,
 }
 
-export interface User{
+export interface User {
   name: string,
   role: string,
 }
-
-type ErrCallback = (err: string, status: number) => void;
-
-type ResCallback<T=string> = (resText: T) => void;
 
 class NuveClient {
   constructor(public params: NuveClientOptions) { }
@@ -48,82 +44,78 @@ class NuveClient {
     return r;
   }
 
-  createRoom(name: string, callback?: ResCallback<Room>, callbackError?: ErrCallback, options: Object = {}, params?: Partial<NuveClientOptions>) {
-    this.send(function (roomRtn) {
-      const room: Room = JSON.parse(roomRtn);
-      callback?.(room);
-    }, callbackError, 'POST', { name, options }, 'rooms', params);
+  createRoom(name: string, options: Object = {}, params?: Partial<NuveClientOptions>) {
+    return this.send('POST', 'rooms', { name, options }, params);
   }
 
-  getRooms(callback?: ResCallback<Room[]>, callbackError?: ErrCallback, params?: Partial<NuveClientOptions>) {
-    this.send(callback, callbackError, 'GET', undefined, 'rooms', params);
+  getRooms(params?: Partial<NuveClientOptions>) {
+    return this.send('GET', 'rooms', null, params);
   }
 
   getRoom(
     room: string,
-    callback?: ResCallback<Room>,
-    callbackError?: ErrCallback,
     params?: Partial<NuveClientOptions>
   ) {
-    this.send(callback, callbackError, 'GET', undefined, 'rooms/' + room, params);
+    return this.send('GET', 'rooms/' + room, null, params);
   }
 
-  updateRoom(room: string, name?: string, callback?: ResCallback<Room>, callbackError?: ErrCallback, options?: Partial<NuveClientOptions>, params?: Partial<NuveClientOptions>) {
-    this.send(callback, callbackError, 'PUT', { name: name, options: options },
-      'rooms/' + room, params);
+  updateRoom(room: string, name?: string, options?: Partial<NuveClientOptions>, params?: Partial<NuveClientOptions>) {
+    return this.send('PUT', 'rooms/' + room, { name, options }, params);
   }
 
-  patchRoom(room: string, name?: string, callback?: ResCallback<Room>, callbackError?: ErrCallback, options?: Partial<NuveClientOptions>, params?: Partial<NuveClientOptions>) {
-    this.send(callback, callbackError, 'PATCH', { name: name, options: options },
-      'rooms/' + room, params);
+  patchRoom(room: string, name?: string, options?: Partial<NuveClientOptions>, params?: Partial<NuveClientOptions>) {
+    return this.send('PATCH', 'rooms/' + room, { name, options }, params);
   }
 
-  deleteRoom(room: string, callback?: ResCallback<Room>, callbackError?: ErrCallback, params?: Partial<NuveClientOptions>) {
-    this.send(callback, callbackError, 'DELETE', undefined, 'rooms/' + room, params);
+  deleteRoom(room: string, params?: Partial<NuveClientOptions>) {
+    return this.send('DELETE', 'rooms/' + room, null, params);
   }
 
-  createToken(room: string, username: string, role: string, callback?: ResCallback, callbackError?: ErrCallback, params?: Partial<NuveClientOptions>) {
-    this.send(callback, callbackError, 'POST', undefined, 'rooms/' + room + '/tokens',
-      params, username, role);
+  createToken(room: string, username: string, role: string, params?: Partial<NuveClientOptions>) {
+    return this.send(
+      'POST',
+      'rooms/' + room + '/tokens',
+      null,
+      params,
+      username,
+      role
+    );
   }
 
-  createService(name: string, key: BinaryLike, callback?: ResCallback, callbackError?: ErrCallback, params?: Partial<NuveClientOptions>) {
-    this.send(callback, callbackError, 'POST', { name: name, key: key }, 'services/', params);
+  createService(name: string, key: BinaryLike, params?: Partial<NuveClientOptions>) {
+    return this.send('POST', 'services/', { name, key }, params);
   }
 
-  getServices(callback?: ResCallback, callbackError?: ErrCallback, params?: Partial<NuveClientOptions>) {
-    this.send(callback, callbackError, 'GET', undefined, 'services/', params);
+  getServices(params?: Partial<NuveClientOptions>) {
+    return this.send('GET', 'services/', null, params);
   }
 
-  getService(service: string, callback?: ResCallback, callbackError?: ErrCallback, params?: Partial<NuveClientOptions>) {
-    this.send(callback, callbackError, 'GET', undefined, 'services/' + service, params);
+  getService(service: string, params?: Partial<NuveClientOptions>) {
+    return this.send('GET', 'services/' + service, null, params);
   }
 
-  deleteService(service: string, callback?: ResCallback, callbackError?: ErrCallback, params?: Partial<NuveClientOptions>) {
-    this.send(callback, callbackError, 'DELETE', undefined, 'services/' + service, params);
+  deleteService(service: string, params?: Partial<NuveClientOptions>) {
+    return this.send('DELETE', 'services/' + service, null, params);
   }
 
-  getUsers(room: string, callback?: ResCallback<User[]>, callbackError?: ErrCallback, params?: Partial<NuveClientOptions>) {
-    this.send(callback, callbackError, 'GET', undefined, 'rooms/' + room + '/users/', params);
+  getUsers(room: string, params?: Partial<NuveClientOptions>) {
+    return this.send('GET', 'rooms/' + room + '/users/', null, params);
   }
 
-  getUser(room: string, user: string, callback?: ResCallback<User>, callbackError?: ErrCallback, params?: Partial<NuveClientOptions>) {
-    this.send(callback, callbackError, 'GET', undefined, 'rooms/' + room + '/users/' + user, params);
+  getUser(room: string, user: string, params?: Partial<NuveClientOptions>) {
+    return this.send('GET', 'rooms/' + room + '/users/' + user, null, params);
   }
 
   deleteUser(
     room: string,
     user: string,
-    callback?: ResCallback<User>,
-    callbackError?: ErrCallback,
     params?: Partial<NuveClientOptions>
   ) {
-    this.send(
-      callback,
-      callbackError,
+    return this.send(
       'DELETE',
-      undefined,
-      'rooms/' + room + '/users/' + user, params
+      'rooms/' + room + '/users/' + user,
+      null,
+      params
     );
   }
 
@@ -135,7 +127,7 @@ class NuveClient {
     return Buffer.from(hex).toString('base64');
   }
 
-  private send<T=string>(callback?: ResCallback<T>, callbackError?: ErrCallback, method?: string, body?: Record<any, any>, url?: string, params?: Partial<NuveClientOptions> | null, username?: string, role?: string) {
+  private async send<T extends Record<any, any>|null|undefined, B = Record<any, any>>(method: string = "GET", url?: string, body?: B, params?: Partial<NuveClientOptions> | null, username?: string, role?: string): Promise<T | void> {
     let service: string, key: BinaryLike;
 
     if (!params) {
@@ -147,7 +139,6 @@ class NuveClient {
       key = params.key ?? "";
       url = path.join(params.url ?? this.params.url, url ?? "");
     }
-
 
     if (!service || !key) {
       console.log('ServiceID and Key are required!!');
@@ -185,39 +176,23 @@ class NuveClient {
     header += ',mauth_signature=';
     header += signed;
 
-    const req = new XMLHttpRequest();
+    const headers = new Headers()
 
-    req.onreadystatechange = () => {
-      if (req.readyState === 4) {
-        switch (req.status) {
-          case 100:
-          case 200:
-          case 201:
-          case 202:
-          case 203:
-          case 204:
-          case 205:
-            callback?.(req.responseText);
-            break;
-          default:
-            if (callbackError !== undefined) {
-              callbackError(req.status + ' Error' + req.responseText, req.status);
-            }
-        }
-      }
-    };
+    headers.set("Authorization", header)
 
-    req.open(method, url, true);
-
-    req.setRequestHeader('Authorization', header);
-
-    if (body !== undefined) {
-      req.setRequestHeader('Content-Type', 'application/json');
-      req.send(JSON.stringify(body));
-    } else {
-      req.send();
+    if (body) {
+      headers.set('Content-Type', 'application/json')
     }
 
+    const res = await fetch(url, { method, body: JSON.stringify(body), headers })
+
+    const json: T = (await res.json()) as T;
+
+    if (res.status === 205) return json
+    else if ([100, 200, 201, 202, 203, 204].includes(res.status)) return
+    else {
+      throw new Error(JSON.stringify({ status: res.status, responseBody: json }));
+    }
   }
 }
 
