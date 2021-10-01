@@ -9,10 +9,10 @@ interface EventDispatcher {
   addEventListener: (event: string, listener: ListenerFunction) => void
   removeEventListener: (event: string, listener: ListenerFunction) => void
   removeAllListeners: () => void
-  dispatchEvent: (event: LicodeEvent) => void
+  dispatchEvent: (event: LicodeEventSpec) => void
   on: (event: string, listener: ListenerFunction) => void
   off: (event: string, listener: ListenerFunction) => void
-  emit: (event: LicodeEvent) => void
+  emit: (event: LicodeEventSpec) => void
 }
 
 /*
@@ -35,7 +35,7 @@ const EventDispatcher = (): EventDispatcher => {
       dispatcher.eventListeners[eventType].splice(index, 1);
     }
   };
-  const emitterFunc = (event: LicodeEvent) => {
+  const emitterFunc = (event: LicodeEventSpec) => {
     if (!event || !event.type) {
       throw new Error('Undefined event');
     }
@@ -89,7 +89,7 @@ class EventEmitter {
   removeEventListener(eventType: string, listener: ListenerFunction) {
     this.emitter.removeEventListener(eventType, listener);
   }
-  dispatchEvent(evt: LicodeEvent) {
+  dispatchEvent(evt: LicodeEventSpec) {
     this.emitter.dispatchEvent(evt);
   }
   on(eventType: string, listener: ListenerFunction) {
@@ -98,7 +98,7 @@ class EventEmitter {
   off(eventType: string, listener: ListenerFunction) {
     this.removeEventListener(eventType, listener);
   }
-  emit(evt: LicodeEvent) {
+  emit(evt: LicodeEventSpec) {
     this.dispatchEvent(evt);
   }
 }
@@ -113,15 +113,15 @@ class EventEmitter {
  * A LicodeEvent can be initialized this way:
  * var event = LicodeEvent({type: "room-connected"});
  */
-const LicodeEvent = (spec: LicodeEvent) => {
+const LicodeEvent = (spec: LicodeEventSpec) => {
   // Event type. Examples are: 'room-connected', 'stream-added', etc.
   return { ...spec };
 };
 
 
-type LicodeEvent = Pick<Event, "type">;
+export type LicodeEventSpec = Pick<Event, "type">;
 
-export interface ConnectionEvent extends LicodeEvent {
+export interface ConnectionEventSpec extends LicodeEventSpec {
   stream: unknown;
   connection: unknown;
   // TODO: Find ConnectionEvent.state type
@@ -142,14 +142,14 @@ export interface ConnectionEvent extends LicodeEvent {
  * 'ice-state-change' - ICE state changed
  * 'connection-failed' - Connection Failed
  */
-const ConnectionEvent = (spec: ConnectionEvent): ConnectionEvent => {
+const ConnectionEvent = (spec: ConnectionEventSpec): ConnectionEventSpec => {
   const event = LicodeEvent(spec);
   Object.assign(event, spec)
-  return event as ConnectionEvent;
+  return event as ConnectionEventSpec;
 };
 
 
-export interface RoomEvent extends LicodeEvent {
+export interface RoomEventSpec extends LicodeEventSpec {
   streams: unknown[],
   message?: string,
 }
@@ -164,15 +164,15 @@ export interface RoomEvent extends LicodeEvent {
  * 'room-disconnected' - shows that the user has been already disconnected.
  * 'quality-level' - Connection Quality Level
  */
-const RoomEvent = (spec: RoomEvent): RoomEvent => {
+const RoomEvent = (spec: RoomEventSpec): RoomEventSpec => {
   const event = LicodeEvent(spec);
 
   Object.assign(event, spec)
 
-  return event as RoomEvent;
+  return event as RoomEventSpec;
 };
 
-export interface StreamEvent extends LicodeEvent {
+export interface StreamEventSpec extends LicodeEventSpec {
   stream: unknown,
   msg: string,
   // TODO: Find StreamEvent.origin type
@@ -192,12 +192,12 @@ export interface StreamEvent extends LicodeEvent {
  * 'stream-added' - indicates that there is a new stream available in the room.
  * 'stream-removed' - shows that a previous available stream has been removed from the room.
  */
-const StreamEvent = (spec: StreamEvent): StreamEvent => {
+const StreamEvent = (spec: StreamEventSpec): StreamEventSpec => {
   const event = LicodeEvent(spec);
 
   Object.assign(event, spec)
 
-  return event as StreamEvent;
+  return event as StreamEventSpec;
 };
 
 /*
@@ -207,13 +207,18 @@ const StreamEvent = (spec: StreamEvent): StreamEvent => {
  * Event types:
  * 'access-accepted' - indicates that the user has accepted to share his camera and microphone
  */
-const PublisherEvent = (spec: LicodeEvent): LicodeEvent => {
+const PublisherEvent = (spec: LicodeEventSpec): LicodeEventSpec => {
   const that = LicodeEvent(spec);
 
   return that;
 };
 
 export {
-  EventDispatcher, EventEmitter, LicodeEvent, RoomEvent, StreamEvent, PublisherEvent,
+  EventDispatcher,
+  EventEmitter,
+  LicodeEvent,
+  RoomEvent,
+  StreamEvent,
+  PublisherEvent,
   ConnectionEvent
 };

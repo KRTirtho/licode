@@ -7,7 +7,7 @@ import Logger from './utils/Logger';
 
 const Erizo = {
   Room: Room.bind(null, undefined, undefined, undefined),
-  LicodeEvent,
+  LicodeEvent: LicodeEvent,
   RoomEvent,
   StreamEvent,
   ConnectionEvent,
