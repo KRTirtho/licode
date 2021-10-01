@@ -1,48 +1,61 @@
 import Logger from '../utils/Logger';
 
+export interface RTCFcStack {
+  pcConfig: RTCConfiguration,
+  desc: Record<string | number, any>,
+  signalCallback?: (msg?: string) => void,
+  peerConnection: RTCPeerConnection,
+  close(): void,
+  createOffer(): void,
+  addStream(stream: MediaStream & { toLog(): string }): void,
+  sendSignalingMessage(msg: string): void,
+  setSignalingCallback?(cb: (msg?: string) => void): void,
+  processSignalingMessage(msg: string): void
+}
+
+export interface RTCFcStackOptions {
+  callback(msg?: string): void
+}
+
 const log = Logger.module('FcStack');
-const FcStack = (spec) => {
+const FcStack = (spec: RTCFcStackOptions): RTCFcStack => {
   /*
   spec.callback({
       type: sessionDescription.type,
       sdp: sessionDescription.sdp
   });
   */
-  const that = {};
-
-  that.pcConfig = {};
-
-  that.peerConnection = {};
-  that.desc = {};
-  that.signalCallback = undefined;
-
-  that.close = () => {
-    log.debug('message: Close FcStack');
+  const that: RTCFcStack = {
+    pcConfig: {},
+    peerConnection: {} as any,
+    desc: {},
+    close() {
+      log.debug('message: Close FcStack');
+    },
+    createOffer() {
+      log.debug('message: CreateOffer');
+    },
+    addStream: (stream) => {
+      log.debug(`message: addStream, ${stream.toLog()}`);
+    },
+    processSignalingMessage(msg) {
+      log.debug(`message: processSignaling, message: ${msg}`);
+      if (that.signalCallback !== undefined) {
+        that.signalCallback(msg);
+      }
+    },
+    sendSignalingMessage(msg) {
+      log.debug(`message: Sending signaling Message, message: ${msg}`);
+      spec.callback(msg);
+    },
   };
-
-  that.createOffer = () => {
-    log.debug('message: CreateOffer');
+  return {
+    ...that,
+    setSignalingCallback(callback = () => { }) {
+      log.debug('message: Setting signalling callback');
+      that.signalCallback = callback;
+    }
   };
-
-  that.addStream = (stream) => {
-    log.debug(`message: addStream, ${stream.toLog()}`);
-  };
-
-  that.processSignalingMessage = (msg) => {
-    log.debug(`message: processSignaling, message: ${msg}`);
-    if (that.signalCallback !== undefined) { that.signalCallback(msg); }
-  };
-
-  that.sendSignalingMessage = (msg) => {
-    log.debug(`message: Sending signaling Message, message: ${msg}`);
-    spec.callback(msg);
-  };
-
-  that.setSignalingCallback = (callback = () => {}) => {
-    log.debug('message: Setting signalling callback');
-    that.signalCallback = callback;
-  };
-  return that;
 };
 
 export default FcStack;
