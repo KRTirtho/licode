@@ -1,19 +1,35 @@
-import BaseStack from './BaseStack';
+import BaseStack, { RTCBaseStack, RTCBaseStackOptions } from './BaseStack';
 import SdpHelpers from '../utils/SdpHelpers';
 import Logger from '../utils/Logger';
 
 const log = Logger.module('ChromeStableStack');
 
-const ChromeStableStack = (specInput) => {
+export interface RTCChromeStableStack extends RTCBaseStack {
+  mediaConstraints?: {
+    offerToReceiveVideo?: boolean
+    offerToReceiveAudio?: boolean
+  },
+  video?: boolean;
+  prepareCreateOffer(): Promise<void>,
+}
+
+export interface RTCChromeStableStackOptions extends RTCBaseStackOptions {
+  startVideoBW?: number;
+  hardMinVideoBW?: number;
+}
+
+const ChromeStableStack = (specInput: RTCChromeStableStackOptions) => {
   log.debug(`message: Starting Chrome stable stack, spec: ${JSON.stringify(specInput)}`);
   const spec = specInput;
-  const that = BaseStack(specInput);
-  that.mediaConstraints = {
-    offerToReceiveVideo: true,
-    offerToReceiveAudio: true,
+  const that: RTCChromeStableStack = {
+    ...BaseStack(specInput),
+    prepareCreateOffer: () => Promise.resolve(),
+    mediaConstraints: {
+      offerToReceiveVideo: true,
+      offerToReceiveAudio: true,
+    }
   };
 
-  that.prepareCreateOffer = () => Promise.resolve();
 
   that.setStartVideoBW = (sdpInfo) => {
     if (that.video && spec.startVideoBW) {

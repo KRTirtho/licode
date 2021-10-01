@@ -1,16 +1,22 @@
 import Logger from '../utils/Logger';
-import ChromeStableStack from './ChromeStableStack';
+import ChromeStableStack, { RTCChromeStableStack, RTCChromeStableStackOptions } from './ChromeStableStack';
+
+export interface RTCSafariStableStack extends RTCChromeStableStack {
+  _updateTracksToBeNegotiatedFromStream(): void,
+  tracksToBeNegotiated?: number
+}
 
 const log = Logger.module('SafariStack');
-const SafariStack = (specInput) => {
+const SafariStack = (specInput: RTCChromeStableStackOptions): RTCSafariStableStack => {
   log.debug('message: Starting Safari stack');
   const that = ChromeStableStack(specInput);
 
-  that._updateTracksToBeNegotiatedFromStream = () => {
-    that.tracksToBeNegotiated += 1;
+  return {
+    ...that,
+    _updateTracksToBeNegotiatedFromStream: () => {
+      if ((that as any).tracksToBeNegotiated) (that as any).tracksToBeNegotiated += 1;
+    }
   };
-
-  return that;
 };
 
 export default SafariStack;

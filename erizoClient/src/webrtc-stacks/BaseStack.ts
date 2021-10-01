@@ -5,7 +5,7 @@ import Logger from '../utils/Logger';
 const log = Logger.module('BaseStack');
 
 export interface RTCNativeStream extends MediaStream {
-  transceivers: RTCRtpTransceiver[]
+  transceivers: RTCRtpTransceiver[],
 }
 
 export type RTCBaseStackSdpType = RTCSdpType | "candidate" | "error";
@@ -33,7 +33,7 @@ export interface RTCBaseStack {
   setStartVideoBW(sdpInput: any): any;
   setHardMinVideoBW(sdpInput: any): any;
   updateSpec(configInput: RTCBaseStackSpecs, streamId: string): void;
-  addStream(streamInput: { stream: RTCNativeStream, generateEncoderParameters(): string[] }): void;
+  addStream(streamInput: { stream: RTCNativeStream, generateEncoderParameters(): RTCRtpEncodingParameters[], simulcast?: boolean }): void;
   removeStream(nativeStream: RTCNativeStream): void;
   close(): void;
   setLocalDescription(): Promise<void>;

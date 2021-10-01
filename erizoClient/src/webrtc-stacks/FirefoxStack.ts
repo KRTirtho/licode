@@ -1,18 +1,24 @@
 import Logger from '../utils/Logger';
-import BaseStack from './BaseStack';
+import BaseStack, { RTCBaseStack, RTCBaseStackOptions } from './BaseStack';
 
 const log = Logger.module('FirefoxStack');
 
+export interface RTCFirefoxStack extends RTCBaseStack {
+  prepareCreateOffer(): Promise<void>
+}
 
-const FirefoxStack = (specInput) => {
+const FirefoxStack = (specInput: RTCBaseStackOptions) => {
   log.debug('message: Starting Firefox stack');
-  const that = BaseStack(specInput);
+  const that = {
+    ...BaseStack(specInput),
+    prepareCreateOffer: () => Promise.resolve()
+  };
 
   that.addStream = (streamInput) => {
     const nativeStream = streamInput.stream;
     nativeStream.transceivers = [];
     nativeStream.getTracks().forEach(async (track) => {
-      let options = {};
+      let options: Record<any, any> = {};
       if (track.kind === 'video' && streamInput.simulcast) {
         options = {
           sendEncodings: [],
@@ -26,8 +32,6 @@ const FirefoxStack = (specInput) => {
       return transceiver.sender.setParameters(parameters);
     });
   };
-
-  that.prepareCreateOffer = () => Promise.resolve();
 
   return that;
 };
