@@ -181,7 +181,7 @@ export class ErizoStream extends EventDispatcherClass {
 
   // Public functions
   getID() {
-    return this.local && !this.spec.streamID ? "local" : this.spec.streamID;
+    return this.local && !this.spec.streamID ? "local" : this.spec.streamID as string;
   };
 
   getLabel() {
