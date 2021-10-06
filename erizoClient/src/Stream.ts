@@ -1,7 +1,7 @@
 /* global document */
 
-import { EventDispatcher, StreamEvent } from './Events';
-import ConnectionHelpers, { CommonMediaTrackConstraints } from './utils/ConnectionHelpers';
+import { EventDispatcher, LicodeEventSpec, ListenerFunction, StreamEvent } from './Events';
+import ConnectionHelpers, { CommonMediaStreamConstraints, CommonMediaTrackConstraints } from './utils/ConnectionHelpers';
 import ErizoMap from './utils/ErizoMap';
 import Random from './utils/Random';
 import VideoPlayer, { VideoPlayerElement, VideoPlayerNestedOptions } from './views/VideoPlayer';
@@ -12,7 +12,7 @@ import { RTCNativeStream } from './webrtc-stacks/BaseStack';
 
 const log = Logger.module('Stream');
 
-interface ErizoStreamOptions {
+export interface ErizoStreamOptions {
   stream: RTCNativeStream,
   url: string;
   recording: string;
@@ -128,7 +128,7 @@ const Stream = (altConnectionHelpers?: typeof ConnectionHelpers, specInput?: Par
   that.stream = spec?.stream;
   that.url = spec?.url;
   that.recording = spec?.recording;
-  that.room = undefined;
+  // that.room = undefined;
   that.showing = false;
   that.local = false;
   that.video = spec?.video;
@@ -501,7 +501,7 @@ const Stream = (altConnectionHelpers?: typeof ConnectionHelpers, specInput?: Par
       if (elementID !== undefined) {
         player = VideoPlayer({
           id: that.getID?.() as string,
-          stream: that,
+          stream: that as any,
           elementID,
           options
         });
@@ -511,7 +511,7 @@ const Stream = (altConnectionHelpers?: typeof ConnectionHelpers, specInput?: Par
     } else if (nativeStreamContainsAudio && that.hasAudio?.()) {
       player = AudioPlayer({
         id: that.getID?.() as string,
-        stream: that,
+        stream: that as any,
         elementID,
         options
       });

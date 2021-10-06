@@ -1,6 +1,6 @@
 /* global document */
 
-import { ErizoStream } from '../Stream';
+import { ErizoStream } from '../ErizoStream';
 import View, { ViewElement } from './View';
 
 export interface SpeakerOptions {

@@ -10,9 +10,9 @@ interface EventDispatcher {
   removeEventListener: (event: string, listener: ListenerFunction) => void
   removeAllListeners: () => void
   dispatchEvent: <T extends LicodeEventSpec = LicodeEventSpec>(event: T) => void
-  on: (event: string, listener: ListenerFunction) => void
-  off: (event: string, listener: ListenerFunction) => void
-  emit: (event: LicodeEventSpec) => void
+  on: EventDispatcher["addEventListener"]
+  off: EventDispatcher["removeEventListener"]
+  emit: EventDispatcher["dispatchEvent"]
 }
 
 /*
@@ -77,11 +77,59 @@ const EventDispatcher = (): EventDispatcher => {
   };
 };
 
+export class EventDispatcherClass {
+  private eventListeners = new Map<string, ListenerFunction<any>[]>()
+
+  addEventListener<T = undefined>(eventType: string, listener: ListenerFunction<T>) {
+    if (!this.eventListeners.has(eventType)) {
+      this.eventListeners.set(eventType, []);
+    }
+    this.eventListeners.set(eventType, [...(this.eventListeners.get(eventType) ?? []), listener]);
+  }
+  removeEventListener(eventType: string, listener: ListenerFunction) {
+    if (!this.eventListeners.has(eventType)) {
+      return;
+    }
+
+    const eventListeners = this.eventListeners.get(eventType)
+    const index = eventListeners?.indexOf(listener);
+    if (index && index !== -1) {
+      this.eventListeners.set(eventType, eventListeners?.slice(index, 1) ?? [])
+    }
+  };
+
+  dispatchEvent<T extends LicodeEventSpec = LicodeEventSpec>(event: T) {
+    if (!event || !event.type) {
+      throw new Error('Undefined event');
+    }
+    let listeners = this.eventListeners.get(event.type) || [];
+    listeners = listeners.slice(0);
+    for (let i = 0; i < listeners.length; i += 1) {
+      try {
+        listeners[i](event);
+      } catch (e) {
+        log.info(`Error triggering event: ${event.type}, error: ${e}`);
+      }
+    }
+    for (const listener of listeners) {
+      listener(event);
+    }
+  };
+
+  removeAllListeners() {
+    this.eventListeners.clear();
+  }
+
+  on = this.addEventListener;
+  off = this.removeEventListener;
+  emit = this.dispatchEvent;
+}
+
 class EventEmitter {
   emitter;
 
   constructor() {
-    this.emitter = EventDispatcher();
+    this.emitter = new EventDispatcherClass();
   }
   addEventListener(eventType: string, listener: ListenerFunction) {
     this.emitter.addEventListener(eventType, listener);
