@@ -1,9 +1,9 @@
 import View from './View';
 import Bar from './Bar';
-import { VideoPlayerElement, VideoPlayerOptions } from './VideoPlayer';
+import { VideoPlayerElement, VideoPlayerNestedOptions, VideoPlayerOptions } from './VideoPlayer';
 
 export interface AudioPlayerOptions extends Omit<VideoPlayerOptions, "options"> {
-  options: { bar?: boolean, speaker?: boolean }
+  options: Omit<VideoPlayerNestedOptions, "loader">
 }
 export interface AudioPlayerElement extends Omit<VideoPlayerElement, "video" | "containerHeight" | "containerWidth"> {
   audio: HTMLAudioElement
@@ -20,7 +20,7 @@ const AudioPlayer = (spec: AudioPlayerOptions) => {
     ...View(),
     div: document.createElement("div"),
     ...spec,
-    stream: spec.stream.stream,
+    stream: spec.stream.stream as MediaStream,
     audio: document.createElement("audio"),
     destroy() { },
   };

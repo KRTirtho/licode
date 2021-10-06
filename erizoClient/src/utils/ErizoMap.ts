@@ -1,37 +1,22 @@
-const ErizoMap = () => {
-  const that = {};
-  let values = {};
+export class ErizoMapClass<K = any, V = any> extends Map<K, V> {
+  add = super.set;
 
-  that.add = (id, value) => {
-    values[id] = value;
-  };
+  keysArr() {
+    return Array.from<K>(super.keys())
+  }
 
-  that.get = id => values[id];
+  remove(key: K) {
+    super.delete(key)
+  }
+}
 
-  that.has = id => values[id] !== undefined;
-
-  that.size = () => Object.keys(values).length;
-
-  that.forEach = (func) => {
-    const keys = Object.keys(values);
-    for (let index = 0; index < keys.length; index += 1) {
-      const key = keys[index];
-      const value = values[key];
-      func(value, key);
-    }
-  };
-
-  that.keys = () => Object.keys(values);
-
-  that.remove = (id) => {
-    delete values[id];
-  };
-
-  that.clear = () => {
-    values = {};
-  };
-
-  return that;
+export type ErizoMapFunctionConstructor<K, V> = Omit<ErizoMapClass<K, V>, "keysArr" | "keys"> & {
+  keys(): K[];
 };
 
-export default ErizoMap;
+export default function ErizoMap<K = any, V = any>(): ErizoMapFunctionConstructor<K, V> {
+  const map = new ErizoMapClass<K, V>();
+  Object.assign(map.keys, map.keysArr)
+  delete (map as any).keysArr
+  return map as unknown as ErizoMapFunctionConstructor<K, V>
+}

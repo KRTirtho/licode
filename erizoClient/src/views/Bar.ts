@@ -8,7 +8,7 @@ export interface BarOptions {
   id: string,
   options?: { speaker?: boolean },
   stream: SpeakerOptions["stream"] & { screen?: boolean },
-  media: HTMLMediaElement
+  media?: HTMLMediaElement
 }
 
 export interface BarElement extends BarOptions, ViewElement {

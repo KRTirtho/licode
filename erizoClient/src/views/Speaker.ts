@@ -1,12 +1,13 @@
 /* global document */
 
+import { ErizoStream } from '../Stream';
 import View, { ViewElement } from './View';
 
 export interface SpeakerOptions {
   elementID: string;
-  media: HTMLMediaElement;
+  media?: HTMLMediaElement;
   id: string;
-  stream: { stream: MediaStream, local?: MediaStream };
+  stream: ErizoStream;
 }
 
 export interface SpeakerElement extends ViewElement, Partial<SpeakerOptions> {
@@ -35,7 +36,7 @@ const Speaker = (spec: SpeakerOptions) => {
     Object.assign(that, { media: { muted: true } })
     that?.icon?.setAttribute('src', `${that.url}/assets/mute48.png`);
     if (that?.stream?.local) {
-      that.stream.stream.getAudioTracks()[0].enabled = false;
+      if (that.stream.stream) that.stream.stream.getAudioTracks()[0].enabled = false;
     } else {
       lastVolume = parseFloat(that.picker.value);
       that.picker.value = "0";
@@ -46,7 +47,7 @@ const Speaker = (spec: SpeakerOptions) => {
   const unmute = () => {
     if (that.media) that.media.muted = false;
     if (that.icon) that.icon.setAttribute('src', `${that.url}/assets/sound48.png`);
-    if (that.stream?.local) {
+    if (that.stream?.local && that.stream.stream) {
       that.stream.stream.getAudioTracks()[0].enabled = true;
     } else {
       that.picker.value = lastVolume.toString();
@@ -98,8 +99,10 @@ const Speaker = (spec: SpeakerOptions) => {
     //  FireFox supports range sliders as of version 23
     that.picker.setAttribute('orient', 'vertical');
     that.div.appendChild(that.picker);
-    that.media.volume = parseFloat(that.picker.value) / 100;
-    that.media.muted = false;
+    if (that.media) {
+      that.media.volume = parseFloat(that.picker.value) / 100;
+      that.media.muted = false;
+    }
 
     that.picker.oninput = () => {
       if (parseFloat(that.picker.value) > 0) {

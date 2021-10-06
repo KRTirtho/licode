@@ -1,14 +1,17 @@
-/* global */
-import ChromeStableStack from './webrtc-stacks/ChromeStableStack';
+import ChromeStableStack, { RTCChromeStableStackOptions } from './webrtc-stacks/ChromeStableStack';
 import SafariStack from './webrtc-stacks/SafariStack';
 import FirefoxStack from './webrtc-stacks/FirefoxStack';
-import FcStack from './webrtc-stacks/FcStack';
+import FcStack, { RTCFcStackOptions } from './webrtc-stacks/FcStack';
 import Logger from './utils/Logger';
 import { EventEmitter, ConnectionEvent } from './Events';
-import ErizoMap from './utils/ErizoMap';
+import ErizoMap, { ErizoMapFunctionConstructor } from './utils/ErizoMap';
 import ConnectionHelpers from './utils/ConnectionHelpers';
+import { RTCBaseStackOptions } from './webrtc-stacks/BaseStack';
 
-const EventEmitterConst = EventEmitter; // makes google-closure-compiler happy
+export interface RTCStreamEvent extends Event {
+  stream: MediaStream;
+};
+
 let ErizoSessionId = 103;
 
 const QUALITY_LEVEL_GOOD = 'good';
@@ -23,16 +26,42 @@ const QUALITY_LEVELS = [
 
 const log = Logger.module('ErizoConnection');
 
-class ErizoConnection extends EventEmitterConst {
-  constructor(specInput, erizoId = undefined) {
+type ErizoConnectionOptions = RTCFcStackOptions & RTCChromeStableStackOptions & RTCBaseStackOptions & {
+  connectionId: string,
+  disableIceRestart: boolean,
+  streamRemovedListener?: Function,
+}
+
+class ErizoConnection extends EventEmitter {
+  sessionId: number;
+  connectionId: string;
+  disableIceRestart: boolean;
+  qualityLevel: string;
+  wasAbleToConnect: boolean;
+  streamsMap: ErizoMapFunctionConstructor<string, MediaStream>;
+  stack: Record<any, any>;
+  streamRemovedListener: Function;
+  browser: string
+  peerConnection?: RTCPeerConnection;
+
+  constructor(specInput: ErizoConnectionOptions, public erizoId = undefined) {
     super();
     this.stack = {};
 
-    this.erizoId = erizoId;
-    this.streamsMap = ErizoMap(); // key:streamId, value: stream
+    this.streamsMap = ErizoMap<string, MediaStream>();
 
-    const spec = specInput;
     ErizoSessionId += 1;
+    const spec: ErizoConnectionOptions & {
+      sessionId: number,
+      onEnqueueingTimeout?(step: number): void
+    } = {
+      ...specInput,
+      sessionId: ErizoSessionId,
+      onEnqueueingTimeout: (step) => {
+        const message = `Timeout in ${step}`;
+        this._onConnectionFailed(message);
+      }
+    };
     spec.sessionId = ErizoSessionId;
     this.sessionId = ErizoSessionId;
     this.connectionId = spec.connectionId;
@@ -41,13 +70,9 @@ class ErizoConnection extends EventEmitterConst {
     this.wasAbleToConnect = false;
 
     log.debug(`message: Building a new Connection, ${this.toLog()}`);
-    spec.onEnqueueingTimeout = (step) => {
-      const message = `Timeout in ${step}`;
-      this._onConnectionFailed(message);
-    };
 
     if (!spec.streamRemovedListener) {
-      spec.streamRemovedListener = () => {};
+      spec.streamRemovedListener = () => { };
     }
     this.streamRemovedListener = spec.streamRemovedListener;
 
@@ -70,7 +95,7 @@ class ErizoConnection extends EventEmitterConst {
       throw new Error('WebRTC stack not available');
     }
     if (!this.stack.updateSpec) {
-      this.stack.updateSpec = (newSpec, callback = () => {}) => {
+      this.stack.updateSpec = (newSpec: any, callback: (msg?: string) => void = () => { }) => {
         log.error(`message: Update Configuration not implemented in this browser, ${this.toLog()}`);
         callback('unimplemented');
       };
@@ -84,11 +109,13 @@ class ErizoConnection extends EventEmitterConst {
     // PeerConnection Events
     if (this.stack.peerConnection) {
       this.peerConnection = this.stack.peerConnection; // For backwards compatibility
-      this.stack.peerConnection.onaddstream = (evt) => {
+
+
+      this.stack.peerConnection.onaddstream = (evt: RTCStreamEvent) => {
         this.emit(ConnectionEvent({ type: 'add-stream', stream: evt.stream }));
       };
 
-      this.stack.peerConnection.onremovestream = (evt) => {
+      this.stack.peerConnection.onremovestream = (evt: RTCStreamEvent) => {
         this.emit(ConnectionEvent({ type: 'remove-stream', stream: evt.stream }));
         this.streamRemovedListener(evt.stream.id);
       };
@@ -112,7 +139,7 @@ class ErizoConnection extends EventEmitterConst {
     return `connectionId: ${this.connectionId}, sessionId: ${this.sessionId}, qualityLevel: ${this.qualityLevel}, erizoId: ${this.erizoId}`;
   }
 
-  _onConnectionFailed(message) {
+  _onConnectionFailed(message: string) {
     log.warning(`Connection Failed, message: ${message}, ${this.toLog()}`);
     this.emit(ConnectionEvent({ type: 'connection-failed', connection: this, message }));
   }

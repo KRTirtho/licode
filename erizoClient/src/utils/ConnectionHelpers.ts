@@ -32,22 +32,23 @@ export interface CommonMediaTrackConstraints extends MediaTrackConstraints {
 }
 
 export interface CommonMediaStreamConstraints {
-  audio?: CommonMediaTrackConstraints,
-  video?: CommonMediaTrackConstraints,
+  audio?: boolean | CommonMediaTrackConstraints,
+  video?: boolean | CommonMediaTrackConstraints,
   desktopStreamId?: string;
   extensionId?: string;
   screen?: boolean
+  fake?: boolean
 }
 
 
-const GetUserMedia = (config: CommonMediaStreamConstraints, callback = () => { }, error: <T>(err?: T) => void = () => { }) => {
+const GetUserMedia = (config: CommonMediaStreamConstraints, callback?: (stream: MediaStream) => void, error?: <T>(err?: T) => void) => {
   let screenConfig: CommonMediaStreamConstraints = {};
 
-  const getUserMedia = (userMediaConfig: MediaStreamConstraints, cb: (stream: MediaStream) => void, errorCb: (error: Error) => void) => {
+  const getUserMedia = (userMediaConfig: MediaStreamConstraints, cb?: (stream: MediaStream) => void, errorCb?: (error: Error) => void) => {
     navigator.mediaDevices.getUserMedia(userMediaConfig).then(cb).catch(errorCb);
   };
 
-  const getDisplayMedia = (userMediaConfig: DisplayMediaStreamConstraints, cb: (stream: MediaStream) => void, errorCb: (error: Error) => void) => {
+  const getDisplayMedia = (userMediaConfig: DisplayMediaStreamConstraints, cb?: (stream: MediaStream) => void, errorCb?: (error: Error) => void) => {
     navigator.mediaDevices.getDisplayMedia(userMediaConfig).then(cb).catch(errorCb);
   };
 
@@ -55,7 +56,7 @@ const GetUserMedia = (config: CommonMediaStreamConstraints, callback = () => { }
     switch (getBrowser()) {
       case 'electron':
         log.debug('message: Screen sharing in Electron');
-        Object.assign(screenConfig, {
+        if (typeof config.video === "object") Object.assign(screenConfig, {
           video: {
             ...config.video,
             mandatory: {
@@ -73,7 +74,7 @@ const GetUserMedia = (config: CommonMediaStreamConstraints, callback = () => { }
         screenConfig = {};
         if (config.video !== undefined) {
           screenConfig.video = config.video;
-          if (!screenConfig.video.mediaSource) {
+          if (typeof screenConfig.video === "object" && !screenConfig.video.mediaSource) {
             screenConfig.video.mediaSource = 'window' || 'screen';
           }
         } else {
@@ -88,7 +89,7 @@ const GetUserMedia = (config: CommonMediaStreamConstraints, callback = () => { }
       case 'chrome-stable':
         log.debug('message: Screen sharing in Chrome');
         screenConfig = {};
-        if (config.desktopStreamId) {
+        if (config.desktopStreamId && typeof config.video === "object") {
           Object.assign(screenConfig, {
             video: {
               ...config.video,
@@ -116,11 +117,11 @@ const GetUserMedia = (config: CommonMediaStreamConstraints, callback = () => { }
                 if (response === undefined) {
                   log.error('message: Access to screen denied');
                   const theError = { code: 'Access to screen denied' };
-                  error(theError);
+                  error?.(theError);
                   return;
                 }
                 const theId = response.streamId;
-                if (config.video?.mandatory !== undefined) {
+                if (typeof config.video === "object" && config.video?.mandatory !== undefined) {
                   Object.assign(screenConfig, {
                     video: {
                       ...config.video,
@@ -146,7 +147,7 @@ const GetUserMedia = (config: CommonMediaStreamConstraints, callback = () => { }
           } catch (e) {
             log.debug('message: Screensharing plugin is not accessible');
             const theError = { code: 'no_plugin_present' };
-            error(theError);
+            error?.(theError);
           }
         }
         break;

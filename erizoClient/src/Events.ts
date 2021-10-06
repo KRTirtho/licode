@@ -9,7 +9,7 @@ interface EventDispatcher {
   addEventListener: (event: string, listener: ListenerFunction) => void
   removeEventListener: (event: string, listener: ListenerFunction) => void
   removeAllListeners: () => void
-  dispatchEvent: (event: LicodeEventSpec) => void
+  dispatchEvent: <T extends LicodeEventSpec = LicodeEventSpec>(event: T) => void
   on: (event: string, listener: ListenerFunction) => void
   off: (event: string, listener: ListenerFunction) => void
   emit: (event: LicodeEventSpec) => void
@@ -20,13 +20,13 @@ interface EventDispatcher {
  * It is inherited from Publisher, Room, etc.
  */
 const EventDispatcher = (): EventDispatcher => {
-  const listenFunc = <T = undefined>(eventType: string, listener: ListenerFunction<T>) => {
+  const addEventListener = <T = undefined>(eventType: string, listener: ListenerFunction<T>) => {
     if (dispatcher.eventListeners[eventType] === undefined) {
       dispatcher.eventListeners[eventType] = [];
     }
     dispatcher.eventListeners[eventType].push(listener);
   };
-  const unListenFunc = (eventType: string, listener: ListenerFunction) => {
+  const removeEventListener = (eventType: string, listener: ListenerFunction) => {
     if (!dispatcher.eventListeners[eventType]) {
       return;
     }
@@ -35,7 +35,7 @@ const EventDispatcher = (): EventDispatcher => {
       dispatcher.eventListeners[eventType].splice(index, 1);
     }
   };
-  const emitterFunc = (event: LicodeEventSpec) => {
+  const dispatchEvent = <T extends LicodeEventSpec = LicodeEventSpec>(event: T) => {
     if (!event || !event.type) {
       throw new Error('Undefined event');
     }
@@ -61,19 +61,19 @@ const EventDispatcher = (): EventDispatcher => {
 
   return {
     // It adds an event listener attached to an event type.
-    addEventListener: listenFunc,
+    addEventListener,
     // It removes an available event listener.
-    removeEventListener: unListenFunc,
+    removeEventListener,
     // It removes all listeners
     removeAllListeners: () => {
       dispatcher.eventListeners = {};
     },
     // It dispatch a new event to the event listeners, based on the type
     // of event. All events are intended to be LicodeEvents.
-    dispatchEvent: emitterFunc,
-    on: listenFunc,
-    off: unListenFunc,
-    emit: emitterFunc
+    dispatchEvent,
+    on: addEventListener,
+    off: removeEventListener,
+    emit: dispatchEvent
   };
 };
 
@@ -89,7 +89,7 @@ class EventEmitter {
   removeEventListener(eventType: string, listener: ListenerFunction) {
     this.emitter.removeEventListener(eventType, listener);
   }
-  dispatchEvent(evt: LicodeEventSpec) {
+  dispatchEvent<T extends LicodeEventSpec = LicodeEventSpec>(evt: T) {
     this.emitter.dispatchEvent(evt);
   }
   on(eventType: string, listener: ListenerFunction) {
@@ -98,7 +98,7 @@ class EventEmitter {
   off(eventType: string, listener: ListenerFunction) {
     this.removeEventListener(eventType, listener);
   }
-  emit(evt: LicodeEventSpec) {
+  emit<T extends LicodeEventSpec = LicodeEventSpec>(evt: T) {
     this.dispatchEvent(evt);
   }
 }
@@ -122,12 +122,12 @@ const LicodeEvent = (spec: LicodeEventSpec) => {
 export type LicodeEventSpec = Pick<Event, "type">;
 
 export interface ConnectionEventSpec extends LicodeEventSpec {
-  stream: unknown;
-  connection: unknown;
+  stream?: MediaStream;
+  connection?: unknown;
   // TODO: Find ConnectionEvent.state type
-  state: 0 | 1 | 2;
-  message: string;
-  wasAbleToConnect: boolean;
+  state?: 0 | 1 | 2;
+  message?: string;
+  wasAbleToConnect?: boolean;
 }
 
 
@@ -173,8 +173,8 @@ const RoomEvent = (spec: RoomEventSpec): RoomEventSpec => {
 };
 
 export interface StreamEventSpec extends LicodeEventSpec {
-  stream: unknown,
-  msg: string,
+  stream?: unknown,
+  msg?: string,
   // TODO: Find StreamEvent.origin type
   origin?: unknown,
   // TODO: Find StreamEvent.bandwidth type

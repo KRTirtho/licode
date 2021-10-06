@@ -3,12 +3,14 @@
 import View, { ViewElement } from './View';
 import Bar, { BarElement, BarOptions } from './Bar';
 
+export interface VideoPlayerNestedOptions {
+  bar?: boolean;
+  loader?: boolean;
+  speaker?: boolean;
+}
+
 export interface VideoPlayerOptions extends Omit<BarOptions, "options" | "elementID"> {
-  options?: {
-    bar?: boolean,
-    loader?: boolean,
-    speaker?: boolean
-  },
+  options?: VideoPlayerNestedOptions,
   elementID: string | HTMLElement
 }
 
@@ -35,7 +37,7 @@ const VideoPlayer = (spec: VideoPlayerOptions) => {
     ...View(),
     div: document.createElement("div"),
     ...spec,
-    stream: spec.stream.stream,
+    stream: spec.stream.stream as MediaStream,
     containerHeight: 0,
     containerWidth: 0,
     video: document.createElement("video"),
