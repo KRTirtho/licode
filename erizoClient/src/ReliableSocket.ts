@@ -16,8 +16,31 @@
 // NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+import type { Socket } from "socket.io-client"
+
+export interface PendingSocketData {
+  type?: string;
+  event?: string;
+  ack?: {
+    id: number;
+  };
+  msg?: string;
+  id?: number;
+  gd?: boolean;
+  clientId?: string;
+}
 
 class ReliableSocket {
+  private _pending: PendingSocketData[] = []
+  private _events: Record<string, any[]> = {}
+  private _id = 0;
+  private _enabled = true;
+  private _lastAcked?: number;
+  private _socket: Socket | null = null;
+  _onAckCB;
+  _onReconnectCB;
+
+
   /**
    * socket.io guaranteed delivery socket wrapper.
    * if the socket gets disconnected at any point,
@@ -26,14 +49,14 @@ class ReliableSocket {
    * calling 'setSocket' causes all messages that have not received an ack to be sent again.
    * @constructor
    */
-  constructor(socket, lastAcked) {
+  constructor(socket: Socket, lastAcked?: number) {
     this._pending = [];
     this._events = {};
     this._id = 0;
     this._enabled = true;
     this._onAckCB = this._onAck.bind(this);
     this._onReconnectCB = this._onReconnect.bind(this);
-    this.setLastAcked(lastAcked);
+    lastAcked && this.setLastAcked(lastAcked);
     this.setSocket(socket);
   }
 
@@ -41,7 +64,7 @@ class ReliableSocket {
    * set the id
    * @param id
    */
-  setId(id) {
+  setId(id: number) {
     this._id = id >= 0 ? id : 0;
   }
 
@@ -56,7 +79,7 @@ class ReliableSocket {
    * set the last message id that an ack was sent for
    * @param lastAcked
    */
-  setLastAcked(lastAcked) {
+  setLastAcked(lastAcked: number) {
     this._lastAcked = lastAcked >= 0 ? lastAcked : -1;
   }
 
@@ -72,7 +95,7 @@ class ReliableSocket {
    * disconnected and a new socket is used to continue with the communications
    * @param socket
    */
-  setSocket(socket) {
+  setSocket(socket: Socket) {
     this._cleanup();
     this._socket = socket;
 
@@ -80,7 +103,7 @@ class ReliableSocket {
       // We setup all listeners again
       Object.keys(this._events).forEach((event) => {
         for (let i = 0; i < this._events[event].length; i += 1) {
-          this._socket.on(event, this._events[event][i].wrapped);
+          this._socket?.on(event, this._events[event][i].wrapped);
         }
       });
       this._socket.on('reconnect', this._onReconnectCB);
@@ -116,7 +139,7 @@ class ReliableSocket {
    * if disabled, then messages will be sent without guaranteeing delivery
    * in case of socket disconnection/reconnection.
    */
-  enable(enabled) {
+  enable(enabled: boolean) {
     this._enabled = enabled;
   }
 
@@ -140,7 +163,7 @@ class ReliableSocket {
     this._socket.off('socketgd_ack', this._onAckCB);
     Object.keys(this._events).forEach((event) => {
       for (let i = 0; i < this._events[event].length; i += 1) {
-        this._socket.off(event, this._events[event][i].wrapped);
+        this._socket?.off(event, this._events[event][i].wrapped);
       }
     });
   }
@@ -150,10 +173,10 @@ class ReliableSocket {
    * @param ack
    * @private
    */
-  _onAck(ack) {
+  _onAck(ack: Required<PendingSocketData>["ack"]) {
     // got an ack for a message, remove all messages pending
     // an ack up to (and including) the acked message.
-    while (this._pending.length > 0 && this._pending[0].id <= ack.id) {
+    while (this._pending.length > 0 && this._pending[0]?.id && this._pending[0].id <= ack.id) {
       this._pending.shift();
     }
   }
@@ -170,7 +193,7 @@ class ReliableSocket {
    * send an ack for a message
    * @private
    */
-  _sendAck(id) {
+  _sendAck(id: number) {
     if (!this._socket) {
       return undefined;
     }
@@ -185,7 +208,7 @@ class ReliableSocket {
    * @param message
    * @private
    */
-  _sendOnSocket(msg) {
+  private _sendOnSocket(msg: PendingSocketData) {
     const message = msg;
     if (this._enabled && message.id === undefined) {
       message.id = this._id;
@@ -204,7 +227,7 @@ class ReliableSocket {
           this._socket.send(`socketgd:${message.id}:${message.msg}`, message.ack);
           break;
         case 'emit':
-          this._socket.emit(message.event, { socketgd: message.id, msg: message.msg }, message.ack);
+          this._socket.emit(message.event as string, { socketgd: message.id, msg: message.msg }, message.ack);
           break;
         default:
           break;
@@ -215,6 +238,7 @@ class ReliableSocket {
           this._socket.send(message.msg, message.ack);
           break;
         case 'emit':
+          if (!message.event) throw new TypeError("[licode]: event name is required")
           this._socket.emit(message.event, message.msg, message.ack);
           break;
         default:
@@ -230,7 +254,7 @@ class ReliableSocket {
    * @param message
    * @param ack
    */
-  send(msg, ack) {
+  send(msg: string, ack: PendingSocketData["ack"]) {
     this._sendOnSocket({ type: 'send', msg, ack });
   }
 
@@ -242,16 +266,17 @@ class ReliableSocket {
    * @param message
    * @param ack
    */
-  emit(event, msg, ack) {
-    this._sendOnSocket({ type: 'emit', event, msg, ack });
+  emit(event: string, msg?: string | any, ack?: PendingSocketData["ack"] | ((respType: string, response: PendingSocketData) => void)) {
+    // IDK, why this codebase sucks so much!!!
+    this._sendOnSocket({ type: 'emit', event, msg, ack: ack as any });
   }
 
   /**
    * disconnect the socket
    */
-  disconnect(close) {
+  disconnect(close?: boolean) {
     if (this._socket) {
-      this._socket.disconnect(close);
+      (this._socket.disconnect as any)(close);
     }
     this._cleanup();
     this._socket = null;
@@ -262,7 +287,8 @@ class ReliableSocket {
    */
   disconnectSync() {
     if (this._socket) {
-      this._socket.disconnectSync();
+      // Incompatible type because old typedef of socket.io-client
+      (this._socket as any)?.disconnectSync();
     }
     this._cleanup();
     this._socket = null;
@@ -275,27 +301,27 @@ class ReliableSocket {
    * @param event
    * @param cb
    */
-  on(event, cb) {
+  on(event: string, cb?: (data?: string | { socketgd?: number, msg?: string, clientId?: string, message?: string }, ack?: PendingSocketData["ack"]) => void) {
     this._events[event] = this._events[event] || [];
 
     const cbData = {
       cb,
-      wrapped: (data, ack) => {
-        if (data && event === 'message') {
+      wrapped: (data?: string | { socketgd?: number, msg?: string }, ack?: PendingSocketData["ack"]) => {
+        if (data && typeof data === "string" && event === 'message') {
           // parse the message
           if (data.indexOf('socketgd:') !== 0) {
-            cb(data, ack);
+            cb?.(data, ack);
             return;
           }
           // get the id (skipping the socketgd prefix)
           const index = data.indexOf(':', 9);
           if (index === -1) {
-            cb(data, ack);
+            cb?.(data, ack);
             return;
           }
 
           const id = parseInt(data.substring(9, index), 10);
-          if (id <= this._lastAcked) {
+          if (this._lastAcked && id <= this._lastAcked) {
             // discard the message since it was already handled and acked
             return;
           }
@@ -311,7 +337,7 @@ class ReliableSocket {
           }
           this._sendAck(id);
         } else if (data && typeof data === 'object' && data.socketgd !== undefined) {
-          if (data.socketgd <= this._lastAcked) {
+          if (this._lastAcked && data.socketgd <= this._lastAcked) {
             // discard the message since it was already handled and acked
             return;
           }
@@ -324,7 +350,7 @@ class ReliableSocket {
           }
           this._sendAck(data.socketgd);
         } else {
-          cb(data, ack);
+          cb?.(data, ack);
         }
       },
     };
@@ -339,7 +365,7 @@ class ReliableSocket {
   /**
    * remove a previously set callback for the specified event
    */
-  off(event, cb) {
+  off(event: string, cb: () => void) {
     if (!this._events[event]) {
       return;
     }
@@ -356,5 +382,5 @@ class ReliableSocket {
   }
 }
 
-module.exports = { ReliableSocket };
+export default ReliableSocket;
 

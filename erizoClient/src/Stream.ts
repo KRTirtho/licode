@@ -41,7 +41,7 @@ export interface ErizoStreamOptions {
   fake?: boolean;
 }
 
-export type MsgCb = (msg?: string) => void;
+export type MsgCb<T=string> = (msg?: T) => void;
 
 // IDK why the type exists
 export interface ErizoStreamCheckOptions extends Partial<ErizoStreamOptions> {

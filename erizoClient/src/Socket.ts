@@ -1,43 +1,55 @@
-/* global window */
-
-import io from 'socket.io-client';
+import io, { ManagerOptions, Socket as WSocket } from 'socket.io-client';
 import Logger from './utils/Logger';
-import { ReliableSocket } from '../../common/ReliableSocket';
+import ReliableSocket, { PendingSocketData } from './ReliableSocket';
 
-import { EventDispatcher, LicodeEvent } from './Events';
+import { EventDispatcherClass, LicodeEvent } from './Events';
+import { MsgCb } from './Stream';
+import { DefaultEventsMap } from 'socket.io-client/build/typed-events';
 
 const log = Logger.module('Socket');
 
-const SocketEvent = (type, specInput) => {
+const SocketEvent = <T = unknown>(type: string, specInput: { args: T }) => {
   const that = LicodeEvent({ type });
-  that.args = specInput.args;
+  Object.assign(that, { args: specInput.args })
   return that;
 };
 
 /*
  * Class Socket represents a client Socket.IO connection to ErizoController.
  */
-const Socket = (newIo) => {
-  const that = EventDispatcher();
-  const defaultCallback = () => {};
+class Socket {
+  private ed = new EventDispatcherClass()
 
-  that.CONNECTED = Symbol('connected');
-  that.RECONNECTING = Symbol('reconnecting');
-  that.DISCONNECTED = Symbol('disconnected');
+  addEventListener = this.ed.addEventListener
+  removeEventListener = this.ed.removeEventListener
+  removeAllListeners = this.ed.removeAllListeners
+  on = this.ed.on
+  off = this.ed.off
 
-  const WEBSOCKET_NORMAL_CLOSURE = 1000;
-  that.state = that.DISCONNECTED;
-  that.IO = newIo === undefined ? io : newIo;
 
-  let socket;
-  let reliableSocket;
-  let pageUnloaded = false;
 
-  const emit = (type, ...args) => {
-    that.emit(SocketEvent(type, { args }));
+  id?: string;
+  CONNECTED = Symbol('connected');
+  RECONNECTING = Symbol('reconnecting');
+  DISCONNECTED = Symbol('disconnected');
+  WEBSOCKET_NORMAL_CLOSURE = 1000;
+  state: symbol = this.DISCONNECTED;
+  defaultCallback = () => { }
+  pageUnloaded = false;
+
+  socket?: WSocket<DefaultEventsMap, DefaultEventsMap>;
+  reliableSocket?: ReliableSocket;
+  clientInitiated?: boolean;
+
+  constructor(private IO: typeof io = io) {
+    window.addEventListener('beforeunload', this.onBeforeUnload);
+  }
+
+  emit<T>(type: string, ...args: T[]) {
+    this.ed.dispatchEvent(SocketEvent(type, { args }));
   };
 
-  that.connect = (token, userOptions, callback = defaultCallback, error = defaultCallback) => {
+  connect(token: ManagerOptions, userOptions: any, callback?: <T = string>(arg1: T) => void, error?: MsgCb) {
     const query = userOptions;
     Object.assign(userOptions, token);
     // Reconnection Logic: 3 attempts.
@@ -77,192 +89,201 @@ const Socket = (newIo) => {
     };
     const transport = token.secure ? 'wss://' : 'ws://';
     const host = token.host;
-    socket = that.IO.connect(transport + host, options);
-    reliableSocket = new ReliableSocket(socket);
+    this.socket = this.IO(transport + host, options);
+    this.reliableSocket = new ReliableSocket(this.socket);
 
-    that.reliableSocket = reliableSocket;
+    this.reliableSocket = this.reliableSocket;
 
     // Hack to know the exact reason of the WS closure (socket.io does not publish it)
-    let closeCode = WEBSOCKET_NORMAL_CLOSURE;
-    const socketOnCloseFunction = socket.io.engine.transport.ws.onclose;
-    socket.io.engine.transport.ws.onclose = (closeEvent) => {
-      log.info(`message: WebSocket closed, code: ${closeEvent.code}, id: ${that.id}`);
+    let closeCode = this.WEBSOCKET_NORMAL_CLOSURE;
+    const socketOnCloseFunction = this.socket.io.engine.transport.ws.onclose;
+    (this.socket.io.engine.transport.ws as WebSocket).onclose = (closeEvent) => {
+      log.info(`message: WebSocket closed, code: ${closeEvent.code}, id: ${this.id}`);
       closeCode = closeEvent.code;
       socketOnCloseFunction(closeEvent);
     };
 
-    reliableSocket.on('connected', (response) => {
-      log.info(`message: connected, previousState: ${that.state.toString()}, id: ${that.id}`);
-      that.state = that.CONNECTED;
-      that.id = response.clientId;
-      callback(response);
+    this.reliableSocket.on('connected', (response) => {
+      log.info(`message: connected, previousState: ${this.state.toString()}, id: ${this.id}`);
+      this.state = this.CONNECTED;
+      if (typeof response === "object") {
+        this.id = response?.clientId;
+      }
+      callback?.(response);
     });
 
-    reliableSocket.on('onAddStream', emit.bind(that, 'onAddStream'));
+    this.reliableSocket.on('onAddStream', this.emit.bind(this, 'onAddStream'));
 
-    reliableSocket.on('stream_message_erizo', emit.bind(that, 'stream_message_erizo'));
-    reliableSocket.on('stream_message_p2p', emit.bind(that, 'stream_message_p2p'));
-    reliableSocket.on('connection_message_erizo', emit.bind(that, 'connection_message_erizo'));
-    reliableSocket.on('publish_me', emit.bind(that, 'publish_me'));
-    reliableSocket.on('unpublish_me', emit.bind(that, 'unpublish_me'));
-    reliableSocket.on('onBandwidthAlert', emit.bind(that, 'onBandwidthAlert'));
-
-    // We receive an event of new data in one of the streams
-    reliableSocket.on('onDataStream', emit.bind(that, 'onDataStream'));
+    this.reliableSocket.on('stream_message_erizo', this.emit.bind(this, 'stream_message_erizo'));
+    this.reliableSocket.on('stream_message_p2p', this.emit.bind(this, 'stream_message_p2p'));
+    this.reliableSocket.on('connection_message_erizo', this.emit.bind(this, 'connection_message_erizo'));
+    this.reliableSocket.on('publish_me', this.emit.bind(this, 'publish_me'));
+    this.reliableSocket.on('unpublish_me', this.emit.bind(this, 'unpublish_me'));
+    this.reliableSocket.on('onBandwidthAlert', this.emit.bind(this, 'onBandwidthAlert'));
 
     // We receive an event of new data in one of the streams
-    reliableSocket.on('onUpdateAttributeStream', emit.bind(that, 'onUpdateAttributeStream'));
+    this.reliableSocket.on('onDataStream', this.emit.bind(this, 'onDataStream'));
+
+    // We receive an event of new data in one of the streams
+    this.reliableSocket.on('onUpdateAttributeStream', this.emit.bind(this, 'onUpdateAttributeStream'));
 
     // We receive an event of a stream removed from the room
-    reliableSocket.on('onRemoveStream', emit.bind(that, 'onRemoveStream'));
+    this.reliableSocket.on('onRemoveStream', this.emit.bind(this, 'onRemoveStream'));
 
-    reliableSocket.on('onAutomaticStreamsSubscription', emit.bind(that, 'onAutomaticStreamsSubscription'));
+    this.reliableSocket.on('onAutomaticStreamsSubscription', this.emit.bind(this, 'onAutomaticStreamsSubscription'));
 
-    reliableSocket.on('connection_failed', (evt) => {
-      log.warning(`message: connection failed, id: ${that.id}, evt: ${evt}`);
-      emit('connection_failed', evt);
+    this.reliableSocket.on('connection_failed', (evt) => {
+      log.warning(`message: connection failed, id: ${this.id}, evt: ${evt}`);
+      this.emit('connection_failed', evt);
     });
 
     // Socket.io Internal events
-    reliableSocket.on('connect', () => {
-      log.info(`message: connect, previousState: ${that.state.toString()}, id: ${that.id}`);
-      if (that.state === that.RECONNECTING) {
-        log.info(`message: reconnected, id: ${that.id}`);
-        that.state = that.CONNECTED;
-        emit('reconnected', that.id);
+    this.reliableSocket.on('connect', () => {
+      log.info(`message: connect, previousState: ${this.state.toString()}, id: ${this.id}`);
+      if (this.state === this.RECONNECTING) {
+        log.info(`message: reconnected, id: ${this.id}`);
+        this.state = this.CONNECTED;
+        this.emit('reconnected', this.id);
       }
     });
 
-    reliableSocket.on('error', (err) => {
-      log.warning(`message: socket error, id: ${that.id}, state: ${that.state.toString()}, error: ${err}`);
+    this.reliableSocket.on('error', (err) => {
+      log.warning(`message: socket error, id: ${this.id}, state: ${this.state.toString()}, error: ${err}`);
       const tokenIssue = 'token: ';
-      if (err.startsWith(tokenIssue)) {
-        that.state = that.DISCONNECTED;
-        error(err.slice(tokenIssue.length));
-        reliableSocket.disconnect();
+      if (typeof err === "string" && err.startsWith(tokenIssue)) {
+        this.state = this.DISCONNECTED;
+        error?.(err.slice(tokenIssue.length));
+        this.reliableSocket?.disconnect();
         return;
       }
-      if (that.state === that.RECONNECTING) {
-        that.state = that.DISCONNECTED;
-        reliableSocket.disconnect(true);
-        emit('disconnect', err);
+      if (this.state === this.RECONNECTING) {
+        this.state = this.DISCONNECTED;
+        this.reliableSocket?.disconnect(true);
+        this.emit('disconnect', err);
         return;
       }
-      if (that.state === that.DISCONNECTED) {
-        reliableSocket.disconnect(true);
+      if (this.state === this.DISCONNECTED) {
+        this.reliableSocket?.disconnect(true);
         return;
       }
-      emit('error');
+      this.emit('error');
     });
 
     // The socket has disconnected
-    reliableSocket.on('disconnect', (reason) => {
-      const pendingMessages = reliableSocket.getNumberOfPending();
-      log.info(`message: disconnect, id: ${that.id}, reason: ${reason}, closeCode: ${closeCode}, pending: ${pendingMessages}`);
-      if (that.clientInitiated) {
-        that.state = that.DISCONNECTED;
-        if (!pageUnloaded) {
-          emit('disconnect', reason);
+    this.reliableSocket.on('disconnect', (reason) => {
+      const pendingMessages = this.reliableSocket?.getNumberOfPending();
+      log.info(`message: disconnect, id: ${this.id}, reason: ${reason}, closeCode: ${closeCode}, pending: ${pendingMessages}`);
+      if (this.clientInitiated) {
+        this.state = this.DISCONNECTED;
+        if (!this.pageUnloaded) {
+          this.emit('disconnect', reason);
         }
-        reliableSocket.disconnect(true);
+        this.reliableSocket?.disconnect(true);
       } else {
-        that.state = that.RECONNECTING;
-        emit('reconnecting', `reason: ${reason}, pendingMessages: ${pendingMessages}`);
+        this.state = this.RECONNECTING;
+        this.emit('reconnecting', `reason: ${reason}, pendingMessages: ${pendingMessages}`);
       }
     });
 
-    reliableSocket.on('connect_error', (err) => {
+    this.reliableSocket.on('connect_error', (err) => {
       // This can be thrown during reconnection attempts too
-      log.warning(`message: connect error, id: ${that.id}, error: ${err.message}`);
+      if (typeof err !== "string") log.warning(`message: connect error, id: ${this.id}, error: ${err?.message}`);
     });
 
-    reliableSocket.on('connect_timeout', (err) => {
-      log.warning(`message: connect timeout, id: ${that.id}, error: ${err.message}`);
+    this.reliableSocket.on('connect_timeout', (err) => {
+      if (typeof err !== "string") log.warning(`message: connect timeout, id: ${this.id}, error: ${err?.message}`);
     });
 
-    reliableSocket.on('reconnecting', (attemptNumber) => {
-      log.info(`message: reconnecting, id: ${that.id}, attempt: ${attemptNumber}`);
+    this.reliableSocket.on('reconnecting', (attemptNumber) => {
+      log.info(`message: reconnecting, id: ${this.id}, attempt: ${attemptNumber}`);
     });
 
-    reliableSocket.on('reconnect', (attemptNumber) => {
+    this.reliableSocket.on('reconnect', (attemptNumber) => {
       // Underlying WS has been reconnected, but we still need to wait for the 'connect' message.
-      log.info(`message: internal ws reconnected, id: ${that.id}, attempt: ${attemptNumber}`);
+      log.info(`message: internal ws reconnected, id: ${this.id}, attempt: ${attemptNumber}`);
     });
 
-    reliableSocket.on('reconnect_attempt', (attemptNumber) => {
+    this.reliableSocket.on('reconnect_attempt', (attemptNumber) => {
       // We are starting a new reconnection attempt, so we will update the query to let
-      // ErizoController know that the new socket is a reconnection attempt.
-      log.debug(`message: reconnect attempt, id: ${that.id}, attempt: ${attemptNumber}`);
-      query.clientId = that.id;
-      socket.io.opts.query = query;
+      // ErizoController know this the new socket is a reconnection attempt.
+      log.debug(`message: reconnect attempt, id: ${this.id}, attempt: ${attemptNumber}`);
+      query.clientId = this.id;
+      Object.assign(this.socket, {
+        io: {
+          ...this.socket?.io,
+          opts: {
+            ...this.socket?.io.opts,
+            query
+          }
+        }
+      })
     });
 
-    reliableSocket.on('reconnect_error', (err) => {
+    this.reliableSocket.on('reconnect_error', (err) => {
       // The last reconnection attempt failed.
-      log.info(`message: error reconnecting, id: ${that.id}, error: ${err.message}`);
+      if (typeof err !== "string") log.info(`message: error reconnecting, id: ${this.id}, error: ${err?.message}`);
     });
 
-    reliableSocket.on('reconnect_failed', () => {
+    this.reliableSocket.on('reconnect_failed', () => {
       // We could not reconnect after all attempts.
-      log.info(`message: reconnect failed, id: ${that.id}`);
-      that.state = that.DISCONNECTED;
-      emit('disconnect', 'reconnect failed');
-      reliableSocket.disconnect(true);
+      log.info(`message: reconnect failed, id: ${this.id}`);
+      this.state = this.DISCONNECTED;
+      this.emit('disconnect', 'reconnect failed');
+      this.reliableSocket?.disconnect(true);
     });
   };
 
-  const onBeforeUnload = (evtIn) => {
+  onBeforeUnload(evtIn: Event) {
     const evt = evtIn;
-    if (that.state === that.DISCONNECTED) {
+    if (this.state === this.DISCONNECTED) {
       return;
     }
     evt.preventDefault();
-    delete evt.returnValue;
-    pageUnloaded = true;
-    that.disconnect(true);
+    delete (evt as any).returnValue;
+    this.pageUnloaded = true;
+    this.disconnect(true);
   };
 
-  that.disconnect = (clientInitiated) => {
-    log.warning(`message: disconnect, id: ${that.id}, clientInitiated: ${clientInitiated}, state: ${that.state.toString()}`);
-    that.state = that.DISCONNECTED;
-    that.clientInitiated = clientInitiated;
+  disconnect(clientInitiated?: boolean) {
+    log.warning(`message: disconnect, id: ${this?.id}, clientInitiated: ${clientInitiated}, state: ${this.state.toString()}`);
+    this.state = this.DISCONNECTED;
+    this.clientInitiated = clientInitiated;
     if (clientInitiated) {
-      reliableSocket.emit('clientDisconnection');
+      this.reliableSocket?.emit('clientDisconnection');
     }
-    reliableSocket.disconnect();
-    window.removeEventListener('beforeunload', onBeforeUnload);
+    this.reliableSocket?.disconnect();
+    window.removeEventListener('beforeunload', this.onBeforeUnload);
   };
 
-  window.addEventListener('beforeunload', onBeforeUnload);
+
 
   // Function to send a message to the server using socket.io
-  that.sendMessage = (type, msg, callback = defaultCallback, error = defaultCallback) => {
-    if (that.state === that.DISCONNECTED) {
-      log.debug(`message: Trying to send a message over a disconnected Socket, id: ${that.id}, type: ${type}`);
+  sendMessage(type: string, msg: string, callback?: <T, U>(arg1?: T, arg2?: U) => void, error?: (resp: PendingSocketData) => void) {
+    if (this.state === this.DISCONNECTED) {
+      log.debug(`message: Trying to send a message over a disconnected Socket, id: ${this.id}, type: ${type}`);
       return;
     }
-    reliableSocket.emit(type, msg, (respType, resp) => {
+    this.reliableSocket?.emit(type, msg, (respType, resp) => {
       if (respType === 'success') {
-        callback(resp);
+        callback?.(resp);
       } else if (respType === 'error') {
-        error(resp);
+        error?.(resp);
       } else {
-        callback(respType, resp);
+        callback?.(respType, resp);
       }
     });
   };
 
   // It sends a SDP message to the server using socket.io
-  that.sendSDP = (type, options, sdp, callback = defaultCallback) => {
-    if (that.state === that.DISCONNECTED) {
-      log.warning(`message: Trying to send a message over a disconnected Socket, id: ${that.id}`);
+  sendSDP(type: string, options?: any, sdp?: string, callback?: (respType: string, resp: PendingSocketData) => void) {
+    if (this.state === this.DISCONNECTED) {
+      log.warning(`message: Trying to send a message over a disconnected Socket, id: ${this.id}`);
       return;
     }
-    reliableSocket.emit(type, { options, sdp }, (...args) => {
-      callback(...args);
+    this.reliableSocket?.emit(type, { options, sdp }, (...args) => {
+      callback?.(...args);
     });
   };
-  return that;
 };
 
 export { SocketEvent, Socket };

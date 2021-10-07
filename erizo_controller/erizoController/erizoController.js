@@ -158,7 +158,10 @@ if (global.config.erizoController.listen_ssl) {
 
 server.listen(global.config.erizoController.listen_port);
 // eslint-disable-next-line global-require, import/no-extraneous-dependencies
-const io = require('socket.io').listen(server, {
+
+const SocketServer = require("socket.io").Server
+const io = new SocketServer();
+io.listen(server, {
   log: SOCKET_IO_ENABLE_LOGS,
   pingInterval: SOCKET_IO_PING_INTERVAL,
   pingTimeout: SOCKET_IO_PING_TIMEOUT,
@@ -166,9 +169,8 @@ const io = require('socket.io').listen(server, {
     req.headers.origin = undefined;
     callback(null, true);
   },
+  transports: ["websocket"]
 });
-
-io.set('transports', ['websocket']);
 
 let myId;
 const rooms = new Rooms(amqper, ecch);
