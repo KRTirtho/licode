@@ -214,7 +214,7 @@ export class ErizoStream extends EventDispatcherClass {
   getAttributes = () => this.spec.attributes;
 
   // Changes the attributes of this stream in the room.
-  setAttributes(attrs: unknown) {
+  setAttributes(attrs: Record<any, any>) {
     if (this.local) {
       this.emit(StreamEvent({ type: 'internal-set-attributes', stream: this, attrs }));
       return;
