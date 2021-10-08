@@ -1,3 +1,8 @@
+/**
+ * Typescript port, created by KR Tirtho <krtirtho@gmail.com> © 2021
+ */
+
+
 import View from './View';
 import Bar from './Bar';
 import { VideoPlayerElement, VideoPlayerNestedOptions, VideoPlayerOptions } from './VideoPlayer';

@@ -34,7 +34,7 @@ type ErizoConnectionOptions = RTCFcStackOptions & RTCChromeStableStackOptions & 
   streamRemovedListener?: Function,
 }
 
-class ErizoConnection extends EventEmitter {
+export class ErizoConnection extends EventEmitter {
   sessionId: number;
   connectionId: string;
   disableIceRestart: boolean;
@@ -208,7 +208,7 @@ class ErizoConnectionManager {
   ErizoConnectionsMap = new Map<string, ConnectionMapValue>(); // key: erizoId, value: {connectionId: connection}
 
   getErizoConnection(erizoConnectionId: string) {
-    let connection;
+    let connection: ErizoConnection | undefined;
     this.ErizoConnectionsMap.forEach((entry) => {
       Object.keys(entry).forEach((entryKey) => {
         if (entry[entryKey].connectionId === erizoConnectionId) {

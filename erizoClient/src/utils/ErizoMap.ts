@@ -1,3 +1,8 @@
+/**
+ * Typescript port, created by KR Tirtho <krtirtho@gmail.com> © 2021
+ */
+
+
 export class ErizoMapClass<K = any, V = any> extends Map<K, V> {
   add = super.set;
 

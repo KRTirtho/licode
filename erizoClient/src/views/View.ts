@@ -1,3 +1,8 @@
+/**
+ * Typescript port, created by KR Tirtho <krtirtho@gmail.com> © 2021
+ */
+
+
 /*
  * View class represents a HTML component
  * Every view is an EventDispatcher.

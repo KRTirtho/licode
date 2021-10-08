@@ -1,5 +1,6 @@
 import { RTCStreamEvent } from "./ErizoConnectionManager";
 import { EventDispatcherClass, StreamEvent } from "./Events";
+import Room from "./Room";
 import { ErizoStreamCheckOptions, ErizoStreamOptions, MsgCb } from "./Stream";
 import ConnectionHelpers, { CommonMediaTrackConstraints } from "./utils/ConnectionHelpers";
 import ErizoMap from "./utils/ErizoMap";
@@ -10,6 +11,8 @@ import VideoPlayer, { VideoPlayerElement, VideoPlayerNestedOptions } from "./vie
 import { RTCNativeStream } from "./webrtc-stacks/BaseStack";
 
 const log = Logger.module("EStream");
+export type ErizoStreamState = "unsubscribed" | "subscribed" | "unsubscribing" | "subscribing";
+
 export class ErizoStream extends EventDispatcherClass {
   p2p?: boolean = false;
   defaultSimulcastSpatialLayers: number = 3;
@@ -27,29 +30,45 @@ export class ErizoStream extends EventDispatcherClass {
   stream?: RTCNativeStream;
   url?: string;
   pc?: any;
-  player?: VideoPlayerElement | AudioPlayerElement | undefined;
+  player?: VideoPlayerElement | AudioPlayerElement;
   ConnectionHelpers?: typeof ConnectionHelpers
-  elementID?: string | HTMLElement | undefined;
-  recording?: string | undefined;
-  room?: any;
-  video?: boolean | CommonMediaTrackConstraints | undefined;
-  audio?: boolean | CommonMediaTrackConstraints | undefined;
-  screen?: boolean | undefined;
-  videoSize?: number | [number, number, number, number] | undefined;
-  videoFrameRate?: number | undefined;
-  extensionId?: string | undefined;
-  desktopStreamId?: string | undefined;
+  elementID?: string | HTMLElement;
+  recording?: string;
+  room?: Room;
+  video?: boolean | CommonMediaTrackConstraints;
+  audio?: boolean | CommonMediaTrackConstraints;
+  screen?: boolean;
+  videoSize?: number | [number, number, number, number];
+  videoFrameRate?: number;
+  extensionId?: string;
+  desktopStreamId?: string;
   audioMuted: boolean = false;
   videoMuted: boolean = false;
-  maxVideoBW?: number | undefined;
-  maxAudioBW?: number | undefined;
-  streamID?: string | undefined;
+  maxVideoBW?: number;
+  maxAudioBW?: number;
+  streamID?: string;
   attributes?: unknown;
-  data?: boolean | undefined;
-  fake?: boolean | undefined;
+  data?: boolean;
+  fake?: boolean;
   limitMaxVideoBW?: number;
   limitMaxAudioBW?: number;
 
+  // for setting later
+  private _state: ErizoStreamState = "unsubscribed"
+  get state(): ErizoStreamState { return this._state; }
+  set state(status: ErizoStreamState) { this._state = status }
+
+  // Outside usage
+  private _failed: boolean = false;
+  get failed(): boolean { return this._failed }
+  set failed(failed: boolean) {
+    this._failed = failed
+  }
+
+  // outside usage
+  private _forceTurn = false;
+  get forceTurn() { return this._forceTurn };
+  set forceTurn(forceTurn: boolean) { this._forceTurn = forceTurn }
 
   constructor(public altConnectionHelpers: typeof ConnectionHelpers = ConnectionHelpers, protected spec: Partial<ErizoStreamOptions & { label: string }> = {}) {
     super()
@@ -215,7 +234,7 @@ export class ErizoStream extends EventDispatcherClass {
     return info;
   };
 
-  updateLocalAttributes = (attrs: unknown) => {
+  updateLocalAttributes = (attrs: Record<any, any>) => {
     this.spec.attributes = attrs;
   };
 
@@ -620,7 +639,7 @@ export class ErizoStream extends EventDispatcherClass {
     handlers = (handlers instanceof Array) ? handlers : [];
 
     if (handlers.length > 0) {
-      this.room.sendControlMessage(this, 'control', {
+      this.room?.sendControlMessage(this, 'control', {
         name: 'controlhandlers',
         enable,
         publisherSide,
@@ -684,7 +703,7 @@ export class ErizoStream extends EventDispatcherClass {
           this.setMaxVideoBW(config.maxVideoBW);
           this.applySenderEncoderParameters();
         }
-        if (this.room.p2p) {
+        if (this.room?.p2p) {
           for (let index = 0; index < this.pc.length; index += 1) {
             this.pc[index].updateSpec(config, this.getID(), callback);
           }

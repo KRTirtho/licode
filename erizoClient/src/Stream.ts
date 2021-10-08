@@ -1,4 +1,7 @@
-/* global document */
+/**
+ * Typescript port, created by KR Tirtho <krtirtho@gmail.com> © 2021
+ */
+
 
 import { EventDispatcher, LicodeEventSpec, ListenerFunction, StreamEvent } from './Events';
 import ConnectionHelpers, { CommonMediaStreamConstraints, CommonMediaTrackConstraints } from './utils/ConnectionHelpers';
@@ -36,9 +39,11 @@ export interface ErizoStreamOptions {
     pcEventReceived: boolean,
   };
   streamID?: string;
-  attributes: unknown;
+  // TODO: Create Stream `spec.attributes` type
+  attributes: Record<any, any>;
   data?: boolean;
   fake?: boolean;
+  label?: string
 }
 
 export type MsgCb<T=string> = (msg?: T) => void;
@@ -72,7 +77,7 @@ export interface ErizoStream extends Partial<ErizoStreamOptions>, EventDispatche
   getAttributes?(): unknown;
   setAttributes?(attr: unknown): void;
   toLog?(): string
-  updateLocalAttributes?(attr: unknown): void;
+  updateLocalAttributes?(attr: Record<any, any>): void;
   hasAudio?(): boolean;
   hasVideo?(): boolean;
   hasData?(): boolean;
@@ -114,7 +119,7 @@ export interface ErizoStream extends Partial<ErizoStreamOptions>, EventDispatche
  * stream and identify the stream and where it should be drawn.
  */
 const Stream = (altConnectionHelpers?: typeof ConnectionHelpers, specInput?: Partial<ErizoStreamOptions>) => {
-  const spec: Partial<ErizoStreamOptions> & { label?: string } = specInput ?? {};
+  const spec: Partial<ErizoStreamOptions> = specInput ?? {};
   const that: ErizoStream = {
     ...EventDispatcher(/* spec */),
   };
@@ -277,7 +282,7 @@ const Stream = (altConnectionHelpers?: typeof ConnectionHelpers, specInput?: Par
   that.getAttributes = () => spec.attributes;
 
   // Changes the attributes of this stream in the room.
-  that.setAttributes = (attrs: unknown) => {
+  that.setAttributes = (attrs: Record<any, any>) => {
     if (that.local) {
       that.emit(StreamEvent({ type: 'internal-set-attributes', stream: that, attrs }));
       return;

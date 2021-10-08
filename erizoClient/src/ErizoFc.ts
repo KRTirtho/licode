@@ -1,3 +1,8 @@
+/**
+ * Typescript port, created by KR Tirtho <krtirtho@gmail.com> © 2021
+ */
+
+
 import Room from './Room';
 import { LicodeEvent, RoomEvent, StreamEvent } from './Events';
 import Stream from './Stream';

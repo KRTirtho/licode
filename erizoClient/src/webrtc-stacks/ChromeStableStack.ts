@@ -1,3 +1,8 @@
+/**
+ * Typescript port, created by KR Tirtho <krtirtho@gmail.com> © 2021
+ */
+
+
 import BaseStack, { RTCBaseStack, RTCBaseStackOptions } from './BaseStack';
 import SdpHelpers from '../utils/SdpHelpers';
 import Logger from '../utils/Logger';

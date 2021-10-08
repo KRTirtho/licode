@@ -1,3 +1,9 @@
+/**
+ * Typescript type definitions created by 
+ * KR Tirtho <krtirtho@gmail.com> © 2021
+ */
+
+
 declare module "javascript-state-machine" {
   export interface LifecycleArgs {
     transition: string,

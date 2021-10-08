@@ -1,4 +1,7 @@
-/* global document */
+/**
+ * Typescript port, created by KR Tirtho <krtirtho@gmail.com> © 2021
+ */
+
 
 import { ErizoStream } from '../ErizoStream';
 import View, { ViewElement } from './View';

@@ -1,3 +1,8 @@
+/**
+ * Typescript port, created by KR Tirtho <krtirtho@gmail.com> © 2021
+ */
+
+
 import Logger from '../utils/Logger';
 import ChromeStableStack, { RTCChromeStableStack, RTCChromeStableStackOptions } from './ChromeStableStack';
 

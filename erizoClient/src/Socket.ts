@@ -1,4 +1,9 @@
-import io, { ManagerOptions, Socket as WSocket } from 'socket.io-client';
+/**
+ * Typescript port, created by KR Tirtho <krtirtho@gmail.com> © 2021
+ */
+
+
+import io, { ManagerOptions, Socket as WSocket, SocketOptions } from 'socket.io-client';
 import Logger from './utils/Logger';
 import ReliableSocket, { PendingSocketData } from './ReliableSocket';
 
@@ -49,7 +54,7 @@ class Socket {
     this.ed.dispatchEvent(SocketEvent(type, { args }));
   };
 
-  connect(token: ManagerOptions, userOptions: any, callback?: <T = string>(arg1: T) => void, error?: MsgCb) {
+  connect(token: ManagerOptions, userOptions: Record<any, any> = {}, callback?: <T = string>(arg1: T) => void, error?: MsgCb) {
     const query = userOptions;
     Object.assign(userOptions, token);
     // Reconnection Logic: 3 attempts.
@@ -233,7 +238,7 @@ class Socket {
     });
   };
 
-  onBeforeUnload(evtIn: Event) {
+  private onBeforeUnload(evtIn: Event) {
     const evt = evtIn;
     if (this.state === this.DISCONNECTED) {
       return;
@@ -258,7 +263,7 @@ class Socket {
 
 
   // Function to send a message to the server using socket.io
-  sendMessage(type: string, msg: string, callback?: <T, U>(arg1?: T, arg2?: U) => void, error?: (resp: PendingSocketData) => void) {
+  sendMessage(type: string, msg: any, callback?: <T, U>(arg1?: T, arg2?: U) => void, error?: (resp: PendingSocketData) => void) {
     if (this.state === this.DISCONNECTED) {
       log.debug(`message: Trying to send a message over a disconnected Socket, id: ${this.id}, type: ${type}`);
       return;
@@ -275,7 +280,7 @@ class Socket {
   };
 
   // It sends a SDP message to the server using socket.io
-  sendSDP(type: string, options?: any, sdp?: string, callback?: (respType: string, resp: PendingSocketData) => void) {
+  sendSDP<T extends Function = (respType: string, resp: PendingSocketData) => void>(type: string, options?: any, sdp?: string, callback?: T) {
     if (this.state === this.DISCONNECTED) {
       log.warning(`message: Trying to send a message over a disconnected Socket, id: ${this.id}`);
       return;
