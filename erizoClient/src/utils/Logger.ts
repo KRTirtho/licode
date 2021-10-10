@@ -4,7 +4,7 @@
 
 type OutputFunction = (...args: any[]) => void;
 
-const Logger = (() => {
+export const Logger = (() => {
   const DEBUG = 0;
   const TRACE = 1;
   const INFO = 2;
@@ -114,5 +114,3 @@ const Logger = (() => {
     module,
   };
 })();
-
-export default Logger;

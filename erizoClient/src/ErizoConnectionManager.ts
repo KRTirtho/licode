@@ -2,10 +2,10 @@ import ChromeStableStack, { RTCChromeStableStackOptions } from './webrtc-stacks/
 import SafariStack from './webrtc-stacks/SafariStack';
 import FirefoxStack from './webrtc-stacks/FirefoxStack';
 import FcStack, { RTCFcStack, RTCFcStackOptions } from './webrtc-stacks/FcStack';
-import Logger from './utils/Logger';
+import { Logger } from './utils/Logger';
 import { EventEmitter, ConnectionEvent } from './Events';
-import ErizoMap, { ErizoMapFunctionConstructor } from './utils/ErizoMap';
-import ConnectionHelpers from './utils/ConnectionHelpers';
+import ErizoMap, { ErizoMapClass } from './utils/ErizoMap';
+import { ConnectionHelpers } from './utils/ConnectionHelpers';
 import { RTCBaseStack, RTCBaseStackOptions, RTCBaseStackSpecs } from './webrtc-stacks/BaseStack';
 import { ErizoStream } from './ErizoStream';
 import { MsgCb } from './Stream';
@@ -40,7 +40,7 @@ export class ErizoConnection extends EventEmitter {
   disableIceRestart: boolean;
   qualityLevel: string;
   wasAbleToConnect: boolean;
-  streamsMap: ErizoMapFunctionConstructor<string, ErizoStream>;
+  streamsMap: ErizoMapClass<string, ErizoStream>;
   stack: Record<any, any> | RTCFcStack | RTCBaseStack;
   streamRemovedListener: Function;
   browser: string
@@ -204,7 +204,7 @@ export class ErizoConnection extends EventEmitter {
 
 type ConnectionMapValue = Record<string, ErizoConnection>;
 
-class ErizoConnectionManager {
+export class ErizoConnectionManager {
   ErizoConnectionsMap = new Map<string, ConnectionMapValue>(); // key: erizoId, value: {connectionId: connection}
 
   getErizoConnection(erizoConnectionId: string) {
@@ -275,5 +275,3 @@ class ErizoConnectionManager {
     }
   }
 }
-
-export default ErizoConnectionManager;

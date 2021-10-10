@@ -16,6 +16,6 @@
   },
   "include": [
     "src",
-    "js-state-machine.d.ts"
+    "shims.d.ts"
   ]
 }

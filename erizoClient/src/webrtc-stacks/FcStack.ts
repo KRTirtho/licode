@@ -3,7 +3,7 @@
  */
 
 
-import Logger from '../utils/Logger';
+import { Logger } from '../utils/Logger';
 
 export interface RTCFcStack {
   pcConfig: RTCConfiguration,

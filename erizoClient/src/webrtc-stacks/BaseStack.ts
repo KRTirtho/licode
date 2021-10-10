@@ -2,7 +2,7 @@
  * Typescript port, created by KR Tirtho <krtirtho@gmail.com> © 2021
  */
 
-import Logger from '../utils/Logger';
+import { Logger } from '../utils/Logger';
 
 const log = Logger.module('BaseStack');
 

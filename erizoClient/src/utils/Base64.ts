@@ -1,4 +1,4 @@
-const Base64 = (() => {
+export const Base64 = (() => {
   let base64Str: string;
   let base64Count: number;
 
@@ -145,5 +145,3 @@ const Base64 = (() => {
     decodeBase64,
   };
 })();
-
-export default Base64;

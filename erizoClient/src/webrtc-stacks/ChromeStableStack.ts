@@ -5,7 +5,7 @@
 
 import BaseStack, { RTCBaseStack, RTCBaseStackOptions } from './BaseStack';
 import SdpHelpers from '../utils/SdpHelpers';
-import Logger from '../utils/Logger';
+import { Logger } from '../utils/Logger';
 
 const log = Logger.module('ChromeStableStack');
 

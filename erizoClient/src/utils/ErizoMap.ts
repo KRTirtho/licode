@@ -3,25 +3,32 @@
  */
 
 
-export class ErizoMapClass<K = any, V = any> extends Map<K, V> {
-  add = super.set;
+export class ErizoMapClass<K = any, V = any> {
+  private map = new Map();
 
-  keysArr() {
-    return Array.from<K>(super.keys())
+  add = this.map.set;
+  set = this.map.set;
+  delete = this.map.delete;
+  forEach = this.map.forEach;
+  entries = this.map.entries;
+  values = this.map.values;
+  clear = this.map.clear;
+  size = this.map.size;
+  has = this.map.has;
+  get = this.map.get;
+
+
+
+  keys() {
+    return Array.from<K>(this.map.keys())
   }
 
   remove(key: K) {
-    super.delete(key)
+    this.map.delete(key)
   }
 }
 
-export type ErizoMapFunctionConstructor<K, V> = Omit<ErizoMapClass<K, V>, "keysArr" | "keys"> & {
-  keys(): K[];
-};
-
-export default function ErizoMap<K = any, V = any>(): ErizoMapFunctionConstructor<K, V> {
+export default function ErizoMap<K = any, V = any>(): ErizoMapClass<K, V> {
   const map = new ErizoMapClass<K, V>();
-  Object.assign(map.keys, map.keysArr)
-  delete (map as any).keysArr
-  return map as unknown as ErizoMapFunctionConstructor<K, V>
+  return map;
 }

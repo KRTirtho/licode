@@ -3,7 +3,7 @@
  */
 
 
-import Logger from '../utils/Logger';
+import { Logger } from '../utils/Logger';
 import ChromeStableStack, { RTCChromeStableStack, RTCChromeStableStackOptions } from './ChromeStableStack';
 
 export interface RTCSafariStableStack extends RTCChromeStableStack {

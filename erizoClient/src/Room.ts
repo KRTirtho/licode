@@ -3,15 +3,15 @@
  */
 
 
-import ErizoConnectionManager, { ErizoConnection } from './ErizoConnectionManager';
-import PreConnectionHelper from './utils/ConnectionHelpers';
+import { ErizoConnectionManager, ErizoConnection } from './ErizoConnectionManager';
+import { ConnectionHelpers as PreConnectionHelper } from './utils/ConnectionHelpers';
 import { StreamEvent, RoomEvent, EventDispatcherClass, LicodeEventSpec, StreamEventSpec } from './Events';
 import { Socket } from './Socket';
 import io from "socket.io-client"
 import { ErizoStreamOptions } from './Stream';
 import ErizoMap from './utils/ErizoMap';
-import Base64 from './utils/Base64';
-import Logger from './utils/Logger';
+import { Base64 } from './utils/Base64';
+import { Logger } from './utils/Logger';
 import { ErizoStream } from './ErizoStream';
 import { RTCNativeStream } from './webrtc-stacks/BaseStack';
 
@@ -71,7 +71,7 @@ export type PassOrFailCB<T = any, E = any> = (msg?: T, error?: E) => void;
  * 
  * Event `'stream-removed'` shows that a previous available stream has been removed from the room.
  */
-class Room extends EventDispatcherClass {
+export class Room extends EventDispatcherClass {
   // Defined properties
   DISCONNECTED = 0;
   CONNECTING = 1;
@@ -92,7 +92,12 @@ class Room extends EventDispatcherClass {
   connectionTargetBw?: number;
 
 
-  constructor(public altIo: typeof io, public ConnectionHelpers: typeof PreConnectionHelper = PreConnectionHelper, public erizoConnectionManager: ErizoConnectionManager = new ErizoConnectionManager(), public spec?: RoomOptions) {
+  constructor(
+    public altIo: typeof io,
+    public ConnectionHelpers: typeof PreConnectionHelper = PreConnectionHelper,
+    public erizoConnectionManager: ErizoConnectionManager = new ErizoConnectionManager(),
+    public spec?: RoomOptions
+  ) {
     super()
     this.disableIceRestart = !!spec?.disableIceRestart;
     this.socket = new Socket(altIo);
@@ -1198,5 +1203,3 @@ class Room extends EventDispatcherClass {
     });
   }
 };
-
-export default Room;

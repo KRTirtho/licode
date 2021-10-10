@@ -4,7 +4,7 @@
 
 
 import io, { ManagerOptions, Socket as WSocket, SocketOptions } from 'socket.io-client';
-import Logger from './utils/Logger';
+import { Logger } from './utils/Logger';
 import ReliableSocket, { PendingSocketData } from './ReliableSocket';
 
 import { EventDispatcherClass, LicodeEvent } from './Events';

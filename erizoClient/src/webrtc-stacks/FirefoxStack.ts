@@ -3,7 +3,7 @@
  */
 
 
-import Logger from '../utils/Logger';
+import { Logger } from '../utils/Logger';
 import BaseStack, { RTCBaseStack, RTCBaseStackOptions } from './BaseStack';
 
 const log = Logger.module('FirefoxStack');

@@ -1,13 +1,20 @@
 import "mocha"
 import sinon from "sinon"
 import { expect } from "chai"
-import Room from "../src/Room"
-import Logger from "../src/utils/Logger"
-import ErizoConnectionManager from "../src/ErizoConnectionManager"
-import Base64 from "../src/utils/Base64"
-import { StreamEvent, StreamEventSpec } from "../src/Events"
+import {
+  StreamEvent,
+  StreamEventSpec,
+  ErizoConnectionManager,
+  Base64,
+  Logger,
+  Room,
+  ConnectionHelpers
+} from "../src/index"
 
-function promisify(func) {
+import { io as dotio, Socket } from "socket.io-client"
+import jsdom from "mocha-jsdom"
+
+function promisify(func: Function) {
   return new Promise((resolve) => {
     func((val: any) => {
       resolve(val);
@@ -16,28 +23,29 @@ function promisify(func) {
 }
 
 describe('Room', () => {
+  jsdom({ url: 'https://localhost' })
+
   let room: Room;
-  let io;
-  let connectionHelpers;
-  let connectionManager;
-  let socket;
+  let io: typeof dotio;
+  let connectionHelpers: typeof ConnectionHelpers;
+  let connectionManager: ErizoConnectionManager;
+  let socket: Socket;
 
   beforeEach(() => {
     Logger.setLogLevel(Logger.NONE);
     socket = {
-      io: { engine: { transport: { ws: { onclose: sinon.stub() } } } },
+      io: { engine: { transport: { ws: { onclose: sinon.stub() } } } } as any,
       on: sinon.stub(),
-      removeListener: sinon.stub(),
+      off: sinon.stub(),
       emit: sinon.stub(),
       disconnect: sinon.stub(),
-    };
-    io = {
-      connect: sinon.stub().returns(socket),
-    };
+    } as any;
+    io = sinon.stub().returns(socket as unknown as Socket);
     connectionHelpers = {
       getBrowser: sinon.stub(),
+      GetUserMedia: sinon.stub()
     };
-    connectionManager = { ErizoConnectionManager };
+    connectionManager = new ErizoConnectionManager();
   });
 
   afterEach(() => {
@@ -57,7 +65,7 @@ describe('Room', () => {
       clientId: 'arbitraryClientId',
       streams: [],
     };
-    socket.on.withArgs('connected').callArgWith(1, response);
+    (socket.on as sinon.SinonStub).withArgs('connected').callArgWith(1, response);
 
     const roomEvent: any = await promise;
     expect(roomEvent.type).to.equals('room-connected');
@@ -88,78 +96,78 @@ describe('Room', () => {
         clientId: 'arbitraryClientId',
         streams: [],
       };
-      socket.on.withArgs('connected').callArgWith(1, response);
+      (socket.on as sinon.SinonStub).withArgs('connected').callArgWith(1, response);
 
       await promise;
     });
 
     it('should trigger new streams created', async () => {
       const promise = promisify(room.on.bind(null, 'stream-added'));
-      socket.on.withArgs('onAddStream').callArgWith(1, arbitraryStream);
+      (socket.on as sinon.SinonStub).withArgs('onAddStream').callArgWith(1, arbitraryStream);
       const streamEvent = await promise as StreamEventSpec;
       const stream = streamEvent.stream;
-      expect(stream.getID()).to.equal(arbitraryStream.id);
+      expect(stream?.getID()).to.equal(arbitraryStream.id);
     });
 
     it('should trigger new streams deleted', async () => {
       const promise = promisify(room.on.bind(null, 'stream-removed'));
-      socket.on.withArgs('onAddStream').callArgWith(1, arbitraryStream);
-      socket.on.withArgs('onRemoveStream').callArgWith(1, arbitraryStream);
+      (socket.on as sinon.SinonStub).withArgs('onAddStream').callArgWith(1, arbitraryStream);
+      (socket.on as sinon.SinonStub).withArgs('onRemoveStream').callArgWith(1, arbitraryStream);
       const streamEvent = await promise as StreamEventSpec;
       const stream = streamEvent.stream;
-      expect(stream.getID()).to.equal(arbitraryStream.id);
+      expect(stream?.getID()).to.equal(arbitraryStream.id);
     });
 
     it('should subscribe to new streams', async () => {
       const promise = promisify(room.on.bind(null, 'stream-added'));
-      socket.on.withArgs('onAddStream').callArgWith(1, arbitraryStream);
+      (socket.on as sinon.SinonStub).withArgs('onAddStream').callArgWith(1, arbitraryStream);
       const streamEvent = await promise as StreamEventSpec;
       const stream = streamEvent.stream;
 
-      room.subscribe(stream);
+      if (stream) room.subscribe(stream);
 
       const result = 'arbitraryResult';
       const erizoId = 'arbitraryErizoId';
       const connectionId = 'arbitraryConnectionId';
       const error = null;
 
-      const data = socket.emit.withArgs('subscribe').args[0][1].msg;
+      const data = (socket.emit as sinon.SinonStub).withArgs('subscribe').args[0][1].msg;
       expect(data.options.streamId).to.equal(arbitraryStream.id);
-      expect(stream.state).to.equal('subscribing');
+      expect(stream?.state).to.equal('subscribing');
 
-      socket.emit.withArgs('subscribe').args[0][2](result, erizoId, connectionId, error);
-      stream.dispatchEvent(StreamEvent({ type: 'added', stream }));
-      expect(stream.state).to.equal('subscribed');
+      (socket.emit as sinon.SinonStub).withArgs('subscribe').args[0][2](result, erizoId, connectionId, error);
+      stream?.dispatchEvent(StreamEvent({ type: 'added', stream }));
+      expect(stream?.state).to.equal('subscribed');
     });
 
     it.skip('should resubscribe to new streams', async () => {
       const promise = promisify(room.on.bind(null, 'stream-added'));
-      socket.on.withArgs('onAddStream').callArgWith(1, arbitraryStream);
+      (socket.on as sinon.SinonStub).withArgs('onAddStream').callArgWith(1, arbitraryStream);
       const streamEvent = await promise as StreamEventSpec;
       const stream = streamEvent.stream;
 
-      room.subscribe(stream);
+      if (stream) room.subscribe(stream);
 
       const result = 'arbitraryResult';
       const erizoId = 'arbitraryErizoId';
       const connectionId = 'arbitraryConnectionId';
       const error = null;
 
-      const data = socket.emit.withArgs('subscribe').args[0][1].msg;
+      const data = (socket.emit as sinon.SinonStub).withArgs('subscribe').args[0][1].msg;
       expect(data.options.streamId).to.equal(arbitraryStream.id);
-      expect(stream.state).to.equal('subscribing');
+      expect(stream?.state).to.equal('subscribing');
 
-      socket.emit.withArgs('subscribe').args[0][2](result, erizoId, connectionId, error);
+      (socket.emit as sinon.SinonStub).withArgs('subscribe').args[0][2](result, erizoId, connectionId, error);
 
-      room.unsubscribe(stream);
+      if (stream) room.unsubscribe(stream);
 
-      expect(stream.state).to.equal('unsubscribing');
-      stream.dispatchEvent(StreamEvent({ type: 'added', stream }));
-      expect(stream.state).to.equal('subscribed');
+      expect(stream?.state).to.equal('unsubscribing');
+      stream?.dispatchEvent(StreamEvent({ type: 'added', stream }));
+      expect(stream?.state).to.equal('subscribed');
       const connection = room.erizoConnectionManager.getErizoConnection('arbitraryConnectionId');
-      connection.streamRemovedListener(stream.getID());
-      socket.emit.withArgs('unsubscribe').args[0][2](result, error);
-      expect(stream.state).to.equal('unsubscribed');
+      connection?.streamRemovedListener(stream?.getID());
+      (socket.emit as sinon.SinonStub).withArgs('unsubscribe').args[0][2](result, error);
+      expect(stream?.state).to.equal('unsubscribed');
     });
   });
 });

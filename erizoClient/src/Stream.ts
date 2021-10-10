@@ -3,15 +3,15 @@
  */
 
 
-import { EventDispatcher, LicodeEventSpec, ListenerFunction, StreamEvent } from './Events';
-import ConnectionHelpers, { CommonMediaStreamConstraints, CommonMediaTrackConstraints } from './utils/ConnectionHelpers';
+import { EventDispatcher, StreamEvent } from './Events';
+import { ConnectionHelpers, CommonMediaTrackConstraints } from './utils/ConnectionHelpers';
 import ErizoMap from './utils/ErizoMap';
 import Random from './utils/Random';
 import VideoPlayer, { VideoPlayerElement, VideoPlayerNestedOptions } from './views/VideoPlayer';
 import AudioPlayer, { AudioPlayerElement } from './views/AudioPlayer';
-import Logger from './utils/Logger';
 import { RTCStreamEvent } from './ErizoConnectionManager';
 import { RTCNativeStream } from './webrtc-stacks/BaseStack';
+import { Logger } from './utils/Logger';
 
 const log = Logger.module('Stream');
 
@@ -46,7 +46,7 @@ export interface ErizoStreamOptions {
   label?: string
 }
 
-export type MsgCb<T=string> = (msg?: T) => void;
+export type MsgCb<T = string> = (msg?: T) => void;
 
 // IDK why the type exists
 export interface ErizoStreamCheckOptions extends Partial<ErizoStreamOptions> {
@@ -118,7 +118,7 @@ export interface ErizoStream extends Partial<ErizoStreamOptions>, EventDispatche
  * Class Stream represents a local or a remote Stream in the Room. It will handle the WebRTC
  * stream and identify the stream and where it should be drawn.
  */
-const Stream = (altConnectionHelpers?: typeof ConnectionHelpers, specInput?: Partial<ErizoStreamOptions>) => {
+export const Stream = (altConnectionHelpers?: typeof ConnectionHelpers, specInput?: Partial<ErizoStreamOptions>) => {
   const spec: Partial<ErizoStreamOptions> = specInput ?? {};
   const that: ErizoStream = {
     ...EventDispatcher(/* spec */),
@@ -326,7 +326,7 @@ const Stream = (altConnectionHelpers?: typeof ConnectionHelpers, specInput?: Par
   that.hasSimulcast = () => Object.keys(videoSenderLicodeParameters).length > 1;
 
   that.generateEncoderParameters = () => {
-    const nativeSenderParameters = [];
+    const nativeSenderParameters: RTCRtpEncodingParameters[] = [];
     const requestedLayers = Object.keys(videoSenderLicodeParameters).length ||
       defaultSimulcastSpatialLayers;
     const isScreenshare = that.hasScreen?.();
@@ -795,5 +795,3 @@ const Stream = (altConnectionHelpers?: typeof ConnectionHelpers, specInput?: Par
 
   return that;
 };
-
-export default Stream;

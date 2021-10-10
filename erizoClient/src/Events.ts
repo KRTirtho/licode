@@ -1,6 +1,6 @@
 /* global */
 import { ErizoStream } from './ErizoStream';
-import Logger from './utils/Logger';
+import { Logger } from './utils/Logger';
 
 const log = Logger.module('EventDispatcher');
 
@@ -82,7 +82,7 @@ export class EventDispatcherClass {
   private eventListeners = new Map<string, ListenerFunction<any>[]>()
 
   addEventListener<T = undefined>(eventType: string, listener: ListenerFunction<T>) {
-    if (!this.eventListeners.has(eventType)) {
+    if (!this.eventListeners?.has(eventType)) {
       this.eventListeners.set(eventType, []);
     }
     this.eventListeners.set(eventType, [...(this.eventListeners.get(eventType) ?? []), listener]);
@@ -221,7 +221,7 @@ const RoomEvent = (spec: RoomEventSpec): RoomEventSpec => {
   return event as RoomEventSpec;
 };
 
-export interface StreamEventSpec<S=ErizoStream> extends LicodeEventSpec {
+export interface StreamEventSpec<S = ErizoStream> extends LicodeEventSpec {
   stream?: S,
   msg?: string,
   // TODO: Find StreamEvent.origin type
@@ -241,7 +241,7 @@ export interface StreamEventSpec<S=ErizoStream> extends LicodeEventSpec {
  * 'stream-added' - indicates that there is a new stream available in the room.
  * 'stream-removed' - shows that a previous available stream has been removed from the room.
  */
-const StreamEvent = <T=ErizoStream>(spec: StreamEventSpec<T>): StreamEventSpec => {
+const StreamEvent = <T = ErizoStream>(spec: StreamEventSpec<T>): StreamEventSpec => {
   const event = LicodeEvent(spec);
 
   Object.assign(event, spec)

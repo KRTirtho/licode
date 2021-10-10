@@ -46,3 +46,12 @@ declare module "javascript-state-machine" {
   export function apply<T extends StateMachine>(instance: T, opts?: StateMachineConfig): T;
   export function factory<M, D>(opts?: StateMachineConfig<M, D>): { new(): StateMachine<M, D> };
 }
+
+declare module "mocha-jsdom" {
+  interface MochaJSDOMOpts {
+    skipWindowCheck?: boolean;
+    url?: string
+  }
+  function jsdom(opts?: MochaJSDOMOpts): void
+  export default jsdom;
+}

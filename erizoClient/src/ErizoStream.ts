@@ -1,10 +1,10 @@
 import { RTCStreamEvent } from "./ErizoConnectionManager";
 import { EventDispatcherClass, StreamEvent } from "./Events";
-import Room from "./Room";
+import { Room } from "./Room";
 import { ErizoStreamCheckOptions, ErizoStreamOptions, MsgCb } from "./Stream";
-import ConnectionHelpers, { CommonMediaTrackConstraints } from "./utils/ConnectionHelpers";
+import { ConnectionHelpers, CommonMediaTrackConstraints } from "./utils/ConnectionHelpers";
 import ErizoMap from "./utils/ErizoMap";
-import Logger from "./utils/Logger";
+import { Logger } from "./utils/Logger";
 import Random from "./utils/Random";
 import AudioPlayer, { AudioPlayerElement } from "./views/AudioPlayer";
 import VideoPlayer, { VideoPlayerElement, VideoPlayerNestedOptions } from "./views/VideoPlayer";
@@ -258,7 +258,7 @@ export class ErizoStream extends EventDispatcherClass {
   hasSimulcast() { return Object.keys(this.videoSenderLicodeParameters).length > 1; }
 
   generateEncoderParameters() {
-    const nativeSenderParameters = [];
+    const nativeSenderParameters: RTCRtpEncodingParameters[] = [];
     const requestedLayers = Object.keys(this.videoSenderLicodeParameters).length ||
       this.defaultSimulcastSpatialLayers;
     const isScreenshare = this.hasScreen();

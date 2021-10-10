@@ -3,7 +3,7 @@
  */
 
 
-import Logger from './Logger';
+import { Logger } from './Logger';
 
 const log = Logger.module('ConnectionHelpers');
 
@@ -178,6 +178,4 @@ const GetUserMedia = (config: CommonMediaStreamConstraints, callback?: (stream: 
 };
 
 
-const ConnectionHelpers = { GetUserMedia, getBrowser };
-
-export default ConnectionHelpers;
+export const ConnectionHelpers = { GetUserMedia, getBrowser };
