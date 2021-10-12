@@ -7,9 +7,10 @@ import io, { ManagerOptions, Socket as WSocket, SocketOptions } from 'socket.io-
 import { Logger } from './utils/Logger';
 import ReliableSocket, { PendingSocketData } from './ReliableSocket';
 
-import { EventDispatcherClass, LicodeEvent } from './Events';
+import { LicodeEvent } from './Events';
 import { MsgCb } from './Stream';
 import { DefaultEventsMap } from 'socket.io-client/build/typed-events';
+import { EventDispatcher } from './Events';
 
 const log = Logger.module('Socket');
 
@@ -23,7 +24,7 @@ const SocketEvent = <T = unknown>(type: string, specInput: { args: T }) => {
  * Class Socket represents a client Socket.IO connection to ErizoController.
  */
 class Socket {
-  private ed = new EventDispatcherClass()
+  private ed = EventDispatcher()
 
   addEventListener = this.ed.addEventListener
   removeEventListener = this.ed.removeEventListener

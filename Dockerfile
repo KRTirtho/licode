@@ -40,7 +40,7 @@ RUN apt install -y libcurl4 openssl liblzma5\
   && cp ./mongodb-linux-x86_64-debian10-4.4.9/bin/mongo /usr/local/bin/
 
 # installing conan
-RUN pip3 install conan==1.34
+RUN pip3 install conan==1.40.4
 
 
 # download & installing OpenSSL

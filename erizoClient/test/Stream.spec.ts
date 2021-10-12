@@ -2,10 +2,11 @@ import "mocha"
 import sinon from "sinon"
 import { Logger, ErizoStream as Stream } from "../src/index"
 import { expect } from "chai"
-import jsdom from "mocha-jsdom"
+import "./init"
+
+var Map = Map;
 
 describe('Stream.ErizoStream.init', () => {
-  jsdom({ url: 'https://localhost' })
 
   beforeEach(() => {
     Logger.setLogLevel(Logger.NONE);

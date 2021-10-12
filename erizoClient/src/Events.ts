@@ -7,8 +7,8 @@ const log = Logger.module('EventDispatcher');
 export type ListenerFunction<T = undefined> = (arg: T) => void
 
 interface EventDispatcher {
-  addEventListener: (event: string, listener: ListenerFunction) => void
-  removeEventListener: (event: string, listener: ListenerFunction) => void
+  addEventListener: <T>(event: string, listener: ListenerFunction<T>) => void
+  removeEventListener: <T>(event: string, listener: ListenerFunction<T>) => void
   removeAllListeners: () => void
   dispatchEvent: <T extends LicodeEventSpec = LicodeEventSpec>(event: T) => void
   on: EventDispatcher["addEventListener"]
@@ -21,13 +21,13 @@ interface EventDispatcher {
  * It is inherited from Publisher, Room, etc.
  */
 const EventDispatcher = (): EventDispatcher => {
-  const addEventListener = <T = undefined>(eventType: string, listener: ListenerFunction<T>) => {
+  const addEventListener = <T>(eventType: string, listener: ListenerFunction<T>) => {
     if (dispatcher.eventListeners[eventType] === undefined) {
       dispatcher.eventListeners[eventType] = [];
     }
     dispatcher.eventListeners[eventType].push(listener);
   };
-  const removeEventListener = (eventType: string, listener: ListenerFunction) => {
+  const removeEventListener = <T>(eventType: string, listener: ListenerFunction<T>) => {
     if (!dispatcher.eventListeners[eventType]) {
       return;
     }
@@ -79,46 +79,23 @@ const EventDispatcher = (): EventDispatcher => {
 };
 
 export class EventDispatcherClass {
-  private eventListeners = new Map<string, ListenerFunction<any>[]>()
+  private dispatcher = EventDispatcher();
+
 
   addEventListener<T = undefined>(eventType: string, listener: ListenerFunction<T>) {
-    if (!this.eventListeners?.has(eventType)) {
-      this.eventListeners.set(eventType, []);
-    }
-    this.eventListeners.set(eventType, [...(this.eventListeners.get(eventType) ?? []), listener]);
+    this.dispatcher.addEventListener(eventType, listener)
   }
+  
   removeEventListener<T = undefined>(eventType: string, listener: ListenerFunction<T>) {
-    if (!this.eventListeners.has(eventType)) {
-      return;
-    }
-
-    const eventListeners = this.eventListeners.get(eventType)
-    const index = eventListeners?.indexOf(listener);
-    if (index && index !== -1) {
-      this.eventListeners.set(eventType, eventListeners?.slice(index, 1) ?? [])
-    }
+    this.dispatcher.removeEventListener(eventType, listener)
   };
 
   dispatchEvent<T extends LicodeEventSpec = LicodeEventSpec>(event: T) {
-    if (!event || !event.type) {
-      throw new Error('Undefined event');
-    }
-    let listeners = this.eventListeners.get(event.type) || [];
-    listeners = listeners.slice(0);
-    for (let i = 0; i < listeners.length; i += 1) {
-      try {
-        listeners[i](event);
-      } catch (e) {
-        log.info(`Error triggering event: ${event.type}, error: ${e}`);
-      }
-    }
-    for (const listener of listeners) {
-      listener(event);
-    }
+    this.dispatcher.dispatchEvent(event);
   };
 
   removeAllListeners() {
-    this.eventListeners.clear();
+    this.dispatcher.removeAllListeners();
   }
 
   on = this.addEventListener;
@@ -130,7 +107,7 @@ class EventEmitter {
   emitter;
 
   constructor() {
-    this.emitter = new EventDispatcherClass();
+    this.emitter = EventDispatcher();
   }
   addEventListener(eventType: string, listener: ListenerFunction) {
     this.emitter.addEventListener(eventType, listener);

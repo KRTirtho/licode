@@ -5,11 +5,10 @@
 
 import { ErizoConnectionManager, ErizoConnection } from './ErizoConnectionManager';
 import { ConnectionHelpers as PreConnectionHelper } from './utils/ConnectionHelpers';
-import { StreamEvent, RoomEvent, EventDispatcherClass, LicodeEventSpec, StreamEventSpec } from './Events';
+import { StreamEvent, RoomEvent, LicodeEventSpec, StreamEventSpec, EventDispatcher } from './Events';
 import { Socket } from './Socket';
 import io from "socket.io-client"
 import { ErizoStreamOptions } from './Stream';
-import ErizoMap from './utils/ErizoMap';
 import { Base64 } from './utils/Base64';
 import { Logger } from './utils/Logger';
 import { ErizoStream } from './ErizoStream';
@@ -71,17 +70,27 @@ export type PassOrFailCB<T = any, E = any> = (msg?: T, error?: E) => void;
  * 
  * Event `'stream-removed'` shows that a previous available stream has been removed from the room.
  */
-export class Room extends EventDispatcherClass {
+export class Room {
   // Defined properties
   DISCONNECTED = 0;
   CONNECTING = 1;
   CONNECTED = 2;
-  remoteStreams = ErizoMap<string, ErizoStream>();
-  localStreams = ErizoMap<string, ErizoStream>();
+  remoteStreams = new Map<string, ErizoStream>();
+  localStreams = new Map<string, ErizoStream>();
   roomID = '';
   state = this.DISCONNECTED;
   p2p = false;
   minConnectionQualityLevel = '';
+
+  private dispatcher = EventDispatcher();
+  addEventListener = this.dispatcher.addEventListener;
+  removeEventListener = this.dispatcher.removeEventListener;
+  dispatchEvent = this.dispatcher.dispatchEvent;
+  removeAllListeners = this.dispatcher.removeAllListeners;
+  on = this.dispatcher.on;
+  off = this.dispatcher.off;
+  emit = this.dispatcher.emit;
+
 
   // declared vars
   disableIceRestart: boolean;
@@ -98,28 +107,71 @@ export class Room extends EventDispatcherClass {
     public erizoConnectionManager: ErizoConnectionManager = new ErizoConnectionManager(),
     public spec?: RoomOptions
   ) {
-    super()
     this.disableIceRestart = !!spec?.disableIceRestart;
     this.socket = new Socket(altIo);
 
     // event listeners
     this.on('room-disconnected', this.clearAll);
 
-    this.socket.on('onAddStream', this.socketEventToArgs.bind(null, this.socketOnAddStream));
-    this.socket.on('stream_message_erizo', this.socketEventToArgs.bind(null, this.socketOnStreamMessageFromErizo));
-    this.socket.on('stream_message_p2p', this.socketEventToArgs.bind(null, this.socketOnStreamMessageFromP2P));
-    this.socket.on('connection_message_erizo', this.socketEventToArgs.bind(null, this.socketOnConnectionMessageFromErizo));
-    this.socket.on('publish_me', this.socketEventToArgs.bind(null, this.socketOnPublishMe));
-    this.socket.on('unpublish_me', this.socketEventToArgs.bind(null, this.socketOnUnpublishMe));
-    this.socket.on('onBandwidthAlert', this.socketEventToArgs.bind(null, this.socketOnBandwidthAlert));
-    this.socket.on('onDataStream', this.socketEventToArgs.bind(null, this.socketOnDataStream));
-    this.socket.on('onUpdateAttributeStream', this.socketEventToArgs.bind(null, this.socketOnUpdateAttributeStream));
-    this.socket.on('onRemoveStream', this.socketEventToArgs.bind(null, this.socketOnRemoveStream));
-    this.socket.on('disconnect', this.socketEventToArgs.bind(null, this.socketOnDisconnect));
-    this.socket.on('reconnecting', this.socketEventToArgs.bind(null, this.socketOnReconnecting));
-    this.socket.on('reconnected', this.socketEventToArgs.bind(null, this.socketOnReconnected));
-    this.socket.on('connection_failed', this.socketEventToArgs.bind(null, this.socketOnICEConnectionFailed));
-    this.socket.on('error', this.socketEventToArgs.bind(null, this.socketOnError));
+    this.socket.on(
+      'onAddStream',
+      this.socketEventToArgs.bind(this, this.socketOnAddStream)
+    );
+    this.socket.on(
+      'stream_message_erizo',
+      this.socketEventToArgs.bind(this, this.socketOnStreamMessageFromErizo)
+    );
+    this.socket.on(
+      'stream_message_p2p',
+      this.socketEventToArgs.bind(this, this.socketOnStreamMessageFromP2P)
+    );
+    this.socket.on(
+      'connection_message_erizo',
+      this.socketEventToArgs.bind(this, this.socketOnConnectionMessageFromErizo)
+    );
+    this.socket.on(
+      'publish_me',
+      this.socketEventToArgs.bind(this, this.socketOnPublishMe)
+    );
+    this.socket.on(
+      'unpublish_me',
+      this.socketEventToArgs.bind(this, this.socketOnUnpublishMe)
+    );
+    this.socket.on(
+      'onBandwidthAlert',
+      this.socketEventToArgs.bind(this, this.socketOnBandwidthAlert)
+    );
+    this.socket.on(
+      'onDataStream',
+      this.socketEventToArgs.bind(this, this.socketOnDataStream)
+    );
+    this.socket.on(
+      'onUpdateAttributeStream',
+      this.socketEventToArgs.bind(this, this.socketOnUpdateAttributeStream));
+    this.socket.on(
+      'onRemoveStream',
+      this.socketEventToArgs.bind(this, this.socketOnRemoveStream)
+    );
+    this.socket.on(
+      'disconnect',
+      this.socketEventToArgs.bind(this, this.socketOnDisconnect)
+    );
+    this.socket.on(
+      'reconnecting',
+      this.socketEventToArgs.bind(this, this.socketOnReconnecting)
+    );
+    this.socket.on(
+      'reconnected',
+      this.socketEventToArgs.bind(this, this.socketOnReconnected)
+    );
+    this.socket.on(
+      'connection_failed',
+      this.socketEventToArgs.bind(this, this.socketOnICEConnectionFailed)
+    );
+    this.socket.on(
+      'error',
+      this.socketEventToArgs.bind(this, this.socketOnError)
+    );
   };
 
   // Private functions
@@ -253,7 +305,7 @@ export class Room extends EventDispatcherClass {
     const connection = this.erizoConnectionManager.getOrBuildErizoConnection(connectionOptions);
     stream.addPC(connection, false, connectionOptions);
     connection.on('connection-failed', this.dispatchEvent.bind(this));
-    stream.on('added', this.dispatchStreamSubscribed.bind(null, stream));
+    stream.on('added', this.dispatchStreamSubscribed.bind(this, stream));
     stream.on('icestatechanged', (evt: any) => {
       log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}, ${this.toLog()}`);
       if (evt.msg.state === 'failed') {
@@ -352,7 +404,7 @@ export class Room extends EventDispatcherClass {
     stream.addPC(connection, false, connectionOpts);
     connection.on('connection-failed', this.dispatchEvent.bind(this));
 
-    stream.on('added', this.dispatchStreamSubscribed.bind(null, stream));
+    stream.on('added', this.dispatchStreamSubscribed.bind(this, stream));
     stream.on('icestatechanged', (evt: any) => {
       log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}, ${this.toLog()}`);
       if (evt.msg.state === 'failed') {
@@ -404,7 +456,7 @@ export class Room extends EventDispatcherClass {
     });
     stream.room = this;
     stream.state = 'unsubscribed';
-    this.remoteStreams.add(arg.id, stream);
+    this.remoteStreams.set(arg.id, stream);
     const evt = StreamEvent({ type: 'stream-added', stream });
     this.dispatchEvent(evt);
   };
@@ -537,7 +589,7 @@ export class Room extends EventDispatcherClass {
     if (stream) {
       log.info(`message: Stream removed, ${stream.toLog()}, ${this.toLog()}`);
       this.removeStream(stream);
-      this.remoteStreams.remove(arg.id);
+      this.remoteStreams.delete(arg.id);
       const evt = StreamEvent({ type: 'stream-removed', stream });
       this.dispatchEvent(evt);
     }
@@ -617,10 +669,11 @@ export class Room extends EventDispatcherClass {
   };
 
   private socketEventToArgs(func: Function, event: any) {
+    const funcWithContext = func.bind(this);
     if (event.args) {
-      func(...event.args);
+      funcWithContext(...event.args);
     } else {
-      func();
+      funcWithContext();
     }
   };
 
@@ -654,7 +707,7 @@ export class Room extends EventDispatcherClass {
     stream.getID = () => id;
     stream.on('internal-send-data', this.sendDataSocketFromStreamEvent);
     stream.on('internal-set-attributes', this.updateAttributesFromStreamEvent);
-    this.localStreams.add(id, stream);
+    this.localStreams.set(id, stream);
     stream.room = this;
     callback?.(id);
   };
@@ -810,20 +863,20 @@ export class Room extends EventDispatcherClass {
     // Remove all streams
     this.remoteStreams.forEach((stream, id) => {
       this.removeStream(stream);
-      this.remoteStreams.remove(id);
+      this.remoteStreams.delete(id);
       if (stream && !stream.failed) {
         const evt2 = StreamEvent({ type: 'stream-removed', stream });
         this.dispatchEvent(evt2);
       }
     });
-    this.remoteStreams = ErizoMap();
+    this.remoteStreams = new Map<string, ErizoStream>();
 
     // Close Peer Connections
     this.localStreams.forEach((stream, id) => {
       this.removeStream(stream);
-      this.localStreams.remove(id);
+      this.localStreams.delete(id);
     });
-    this.localStreams = ErizoMap();
+    this.localStreams = new Map<string, ErizoStream>();
 
     // Close socket
     try {
@@ -886,7 +939,7 @@ export class Room extends EventDispatcherClass {
         stream.room = this;
         stream.state = 'unsubscribed';
         streamList.push(stream);
-        this.remoteStreams.add(arg.id, stream);
+        this.remoteStreams.set(arg.id, stream);
       }
 
       // 3 - Update RoomID
@@ -1031,7 +1084,7 @@ export class Room extends EventDispatcherClass {
           this.localStreams.get(stream.getID()) as ErizoStream : stream;
         this.removeStream(localStream);
       }
-      this.localStreams.remove(stream.getID());
+      this.localStreams.delete(stream.getID());
 
       Object.assign(stream, {
         getID: () => { }, // So not done bro! The worst workaround..🤐

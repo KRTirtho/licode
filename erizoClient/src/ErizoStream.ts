@@ -1,9 +1,8 @@
 import { RTCStreamEvent } from "./ErizoConnectionManager";
-import { EventDispatcherClass, StreamEvent } from "./Events";
+import { EventDispatcher, StreamEvent } from "./Events";
 import { Room } from "./Room";
 import { ErizoStreamCheckOptions, ErizoStreamOptions, MsgCb } from "./Stream";
 import { ConnectionHelpers, CommonMediaTrackConstraints } from "./utils/ConnectionHelpers";
-import ErizoMap from "./utils/ErizoMap";
 import { Logger } from "./utils/Logger";
 import Random from "./utils/Random";
 import AudioPlayer, { AudioPlayerElement } from "./views/AudioPlayer";
@@ -13,7 +12,7 @@ import { RTCNativeStream } from "./webrtc-stacks/BaseStack";
 const log = Logger.module("EStream");
 export type ErizoStreamState = "unsubscribed" | "subscribed" | "unsubscribing" | "subscribing";
 
-export class ErizoStream extends EventDispatcherClass {
+export class ErizoStream {
   p2p?: boolean = false;
   defaultSimulcastSpatialLayers: number = 3;
   scaleResolutionDownBase: number = 2
@@ -26,6 +25,15 @@ export class ErizoStream extends EventDispatcherClass {
     callbackReceived: false,
     pcEventReceived: false,
   };
+  private dispatcher = EventDispatcher();
+  addEventListener = this.dispatcher.addEventListener;
+  removeEventListener = this.dispatcher.removeEventListener;
+  dispatchEvent = this.dispatcher.dispatchEvent;
+  removeAllListeners = this.dispatcher.removeAllListeners;
+  on = this.dispatcher.on;
+  off = this.dispatcher.off;
+  emit = this.dispatcher.emit;
+
 
   stream?: RTCNativeStream;
   url?: string;
@@ -71,7 +79,6 @@ export class ErizoStream extends EventDispatcherClass {
   set forceTurn(forceTurn: boolean) { this._forceTurn = forceTurn }
 
   constructor(public altConnectionHelpers: typeof ConnectionHelpers = ConnectionHelpers, protected spec: Partial<ErizoStreamOptions & { label: string }> = {}) {
-    super()
     this.stream = spec?.stream;
     this.url = spec?.url;
     this.recording = spec?.recording;
@@ -277,7 +284,7 @@ export class ErizoStream extends EventDispatcherClass {
     if (p2pKey) {
       this.p2p = true;
       if (this.pc === undefined) {
-        this.pc = ErizoMap();
+        this.pc = new Map();
       }
       this.pc.add(p2pKey, pc);
       pc.on('ice-state-change', this.onICEConnectionStateChange);
@@ -664,7 +671,13 @@ export class ErizoStream extends EventDispatcherClass {
         log.warning(`Cannot set parameter ${field} for layer ${layerId}, it does not exist`);
       }
       if (check?.(value)) {
-        this.videoSenderLicodeParameters[layerId][field] = value;
+        // this.videoSenderLicodeParameters[layerId][field] = value;
+        Object.assign(this.videoSenderLicodeParameters, {
+          [layerId]: {
+            ...(this.videoSenderLicodeParameters[layerId]),
+            [field]: value
+          }
+        })
       }
     });
   };

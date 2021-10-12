@@ -5,7 +5,6 @@
 
 import { EventDispatcher, StreamEvent } from './Events';
 import { ConnectionHelpers, CommonMediaTrackConstraints } from './utils/ConnectionHelpers';
-import ErizoMap from './utils/ErizoMap';
 import Random from './utils/Random';
 import VideoPlayer, { VideoPlayerElement, VideoPlayerNestedOptions } from './views/VideoPlayer';
 import AudioPlayer, { AudioPlayerElement } from './views/AudioPlayer';
@@ -345,7 +344,7 @@ export const Stream = (altConnectionHelpers?: typeof ConnectionHelpers, specInpu
     if (p2pKey) {
       that.p2p = true;
       if (that.pc === undefined) {
-        that.pc = ErizoMap();
+        that.pc = new Map();
       }
       that.pc.add(p2pKey, pc);
       pc.on('ice-state-change', onICEConnectionStateChange);
@@ -736,7 +735,12 @@ export const Stream = (altConnectionHelpers?: typeof ConnectionHelpers, specInpu
         log.warning(`Cannot set parameter ${field} for layer ${layerId}, it does not exist`);
       }
       if (check?.(value)) {
-        videoSenderLicodeParameters[layerId][field] = value;
+        Object.assign(videoSenderLicodeParameters, {
+          [layerId]: {
+            ...(videoSenderLicodeParameters[layerId]),
+            [field]: value
+          }
+        })
       }
     });
   };

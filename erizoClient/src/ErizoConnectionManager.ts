@@ -4,7 +4,6 @@ import FirefoxStack from './webrtc-stacks/FirefoxStack';
 import FcStack, { RTCFcStack, RTCFcStackOptions } from './webrtc-stacks/FcStack';
 import { Logger } from './utils/Logger';
 import { EventEmitter, ConnectionEvent } from './Events';
-import ErizoMap, { ErizoMapClass } from './utils/ErizoMap';
 import { ConnectionHelpers } from './utils/ConnectionHelpers';
 import { RTCBaseStack, RTCBaseStackOptions, RTCBaseStackSpecs } from './webrtc-stacks/BaseStack';
 import { ErizoStream } from './ErizoStream';
@@ -40,7 +39,7 @@ export class ErizoConnection extends EventEmitter {
   disableIceRestart: boolean;
   qualityLevel: string;
   wasAbleToConnect: boolean;
-  streamsMap: ErizoMapClass<string, ErizoStream>;
+  streamsMap: Map<string, ErizoStream>;
   stack: Record<any, any> | RTCFcStack | RTCBaseStack;
   streamRemovedListener: Function;
   browser: string
@@ -50,7 +49,7 @@ export class ErizoConnection extends EventEmitter {
     super();
     this.stack = {};
 
-    this.streamsMap = ErizoMap<string, ErizoStream>();
+    this.streamsMap = new Map<string, ErizoStream>();
 
     ErizoSessionId += 1;
     const spec: ErizoConnectionOptions & {
@@ -154,7 +153,7 @@ export class ErizoConnection extends EventEmitter {
 
   addStream(stream: ErizoStream) {
     log.debug(`message: Adding stream to Connection, ${this.toLog()}, ${stream.toLog()}`);
-    this.streamsMap.add(stream.getID(), stream);
+    this.streamsMap.set(stream.getID(), stream);
     if (stream.local) {
       this.stack.addStream(stream);
     }
@@ -166,7 +165,7 @@ export class ErizoConnection extends EventEmitter {
       log.debug(`message: Cannot remove stream not in map, ${this.toLog()}, ${stream.toLog()}`);
       return;
     }
-    this.streamsMap.remove(streamId);
+    this.streamsMap.delete(streamId);
     if (stream.local && stream.stream) {
       (this.stack as RTCBaseStack).removeStream(stream.stream);
     } else if (this.streamsMap.size === 0) {

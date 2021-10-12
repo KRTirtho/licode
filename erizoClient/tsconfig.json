@@ -12,6 +12,7 @@
     "outDir": "./dist",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
+    "strictNullChecks": true,
     "skipLibCheck": true
   },
   "include": [

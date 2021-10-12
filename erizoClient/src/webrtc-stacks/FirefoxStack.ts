@@ -32,8 +32,14 @@ const FirefoxStack = (specInput: RTCBaseStackOptions) => {
       options.streams = [nativeStream];
       const transceiver = that.peerConnection.addTransceiver(track, options);
       nativeStream.transceivers.push(transceiver);
-      const parameters = transceiver.sender.getParameters() || {};
-      parameters.encodings = streamInput.generateEncoderParameters();
+      const parameters = transceiver.sender.getParameters() || {
+        encodings: streamInput.generateEncoderParameters(),
+        codecs: [],
+        headerExtensions: [],
+        transactionId: "",
+        rtcp: {}
+      };
+
       return transceiver.sender.setParameters(parameters);
     });
   };

@@ -10,9 +10,11 @@ import {
   Room,
   ConnectionHelpers
 } from "../src/index"
-
+import "./init"
 import { io as dotio, Socket } from "socket.io-client"
-import jsdom from "mocha-jsdom"
+
+
+var Map = Map;
 
 function promisify(func: Function) {
   return new Promise((resolve) => {
@@ -23,7 +25,7 @@ function promisify(func: Function) {
 }
 
 describe('Room', () => {
-  jsdom({ url: 'https://localhost' })
+
 
   let room: Room;
   let io: typeof dotio;

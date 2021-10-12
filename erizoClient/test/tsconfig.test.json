@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES6",
+    "target": "ES5",
     "lib": [
       "DOM",
       "ESNext",
@@ -13,9 +13,12 @@
     "moduleResolution": "node",
     "skipLibCheck": true,
     "esModuleInterop": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
   },
   "include": [
     "./**/*.ts",
+    "../shims.d.ts"
   ],
   "exclude": [
     "node_modules"
