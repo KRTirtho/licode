@@ -127,18 +127,11 @@ class NuveClient {
     return Buffer.from(hex).toString('base64');
   }
 
-  private async send<T extends Record<any, any>|null|undefined, B = Record<any, any>>(method: string = "GET", url?: string, body?: B, params?: Partial<NuveClientOptions> | null, username?: string, role?: string): Promise<T | void> {
-    let service: string, key: BinaryLike;
+  private async send<T extends Record<any, any> | null | undefined, B = Record<any, any>>(method: string = "GET", url?: string, body?: B, params?: Partial<NuveClientOptions> | null, username?: string, role?: string): Promise<T | void> {
+    let service: string = params?.service ?? this.params.service;
+    let key: BinaryLike = params?.key ?? this.params.key;
+    url = path.join(params?.url ?? this.params.url, url ?? "")
 
-    if (!params) {
-      service = this.params.service;
-      key = this.params.key;
-      url = this.params.url + url;
-    } else {
-      service = params.service ?? "";
-      key = params.key ?? "";
-      url = path.join(params.url ?? this.params.url, url ?? "");
-    }
 
     if (!service || !key) {
       console.log('ServiceID and Key are required!!');
@@ -184,7 +177,7 @@ class NuveClient {
       headers.set('Content-Type', 'application/json')
     }
 
-    const res = await fetch(url, { method, body: JSON.stringify(body), headers })
+    const res = await fetch(url, { method, body: body ? JSON.stringify(body) : null, headers })
 
     const json: T = (await res.json()) as T;
 
