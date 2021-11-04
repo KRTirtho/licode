@@ -102,7 +102,7 @@ export class Room {
 
 
   constructor(
-    public altIo: typeof io,
+    public altIo: typeof io = io,
     public ConnectionHelpers: typeof PreConnectionHelper = PreConnectionHelper,
     public erizoConnectionManager: ErizoConnectionManager = new ErizoConnectionManager(),
     public spec?: RoomOptions

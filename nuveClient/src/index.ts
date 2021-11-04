@@ -162,8 +162,7 @@ class NuveClient {
 
       const json: T = res.data;
 
-      if (res.status === 205) return json
-      else if ([100, 200, 201, 202, 203, 204].includes(res.status)) return
+      if ([100, 200, 201, 202, 203, 204, 205].includes(res.status)) return json
       else {
         throw new Error(JSON.stringify({ status: res.status, responseBody: json }));
       }
