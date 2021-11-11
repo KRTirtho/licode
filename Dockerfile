@@ -29,7 +29,7 @@ RUN apt install -qq python3-software-properties software-properties-common -y
 
 ENV GCC_VERSION=7
 
-RUN apt install make gcc-${GCC_VERSION} g++-${GCC_VERSION} python3-pip libssl-dev cmake pkg-config rabbitmq-server curl autoconf libtool automake -y
+RUN apt install make gcc-${GCC_VERSION} g++-${GCC_VERSION} python3-pip libssl-dev cmake pkg-config libglib2.0-dev rabbitmq-server curl autoconf libtool automake -y
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 60 --slave /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION}
 RUN chown -R `whoami` ~/.npm ~/tmp/ || true
 
@@ -64,6 +64,12 @@ RUN curl -L https://github.com/xiph/opus/archive/v1.1.tar.gz -o opus-1.1.tar.gz\
   && tar -zxvf opus-1.1.tar.gz && cd opus-1.1 && ./autogen.sh\
   && ./configure --prefix=${PREFIX_DIR} && make -j4 -s V=0 && make install
 
+# installing libnice
+RUN curl -OL https://nice.freedesktop.org/releases/libnice-0.1.17.tar.gz\
+    && tar -zxvf libnice-0.1.17.tar.gz && cd libnice-0.1.17\
+    && ./configure --prefix=${PREFIX_DIR}\
+    && make -j4 -s V=0 && make install
+
 # installing cpplint
 RUN pip3 install cpplint==1.5.4
 
@@ -81,7 +87,9 @@ RUN rm -r libsrtp* &&\
   rm -r openssl* &&\
   rm -r opus* &&\
   rm -r mongodb*.tgz &&\
-  rm -r mongodb*
+  rm -r mongodb* &&\
+  rm -r libnice*
+
 
 
 WORKDIR /opt
